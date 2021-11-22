@@ -50,7 +50,7 @@
 # CONTROL USING MQTT TOPICS
 ##########################################################
 ##########################################################
-# The topics change accoring to your [hostname] defined
+# The topics change according to your [hostname] defined
 # under the substitutions section below. Example below
 # is with hostname set to "rullgardin01"
 # MQTT needs to be activated and configured below
@@ -80,7 +80,7 @@
 # CONTROL USING POST TO REST API
 ##########################################################
 ##########################################################
-# The calls change accoring to your [hostname] defined
+# The calls change according to your [hostname] defined
 # under the substitutions section below. Example below
 # is with hostname set to "rullgardin01".
 # Works with IP instead of .local if you don't use mDNS/Multicast
