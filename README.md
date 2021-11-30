@@ -3,17 +3,17 @@
 Motorized blinds extremely cheap (IKEA Fridans)
 
 
-Integrations:
+Integrates with:
 
-Home Assistant through ESPHome integration.
++ Home Assistant through ESPHome integration.
 
-MQTT (HomeKit/HomeBridge and more).
++ MQTT (HomeKit/HomeBridge and more).
 
-HTTP Requests/REST API.
++ HTTP Requests/REST API.
 
-Standalone w/o home automation integration.
++ Standalone w/o home automation integration.
 
-+ more
++ plus more
 
 
 Should integrate with pretty much anything...
