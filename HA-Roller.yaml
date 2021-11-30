@@ -35,7 +35,7 @@
 # Added some extra sensors that report back to HA since they are availiable for free (uptime / reset button / wifi signal and so on)
 # added support for stopping while rolling up and down and resume in the other direction using one button
 # added ability to choose wether ESP should report back to HA continously or only when action has finished (combined the functionallity of RoadkillUK's two seperate scripts)
-# added ability to switch stepper speed (slow/fast)/(silent/noisy) perfect for automations that run late at night when quiet operation is preferred over speed. 
+# added ability to switch stepper speed (slow/fast)/(silent/noisy) perfect for automations that run late at night when quiet operation is preferred over speed.
 
 # Pretty much everything is customized in the "substitutions"-section below.
 # If not using a "secrets"-file (which I recommend) you also have to change:
@@ -57,21 +57,21 @@
 #
 # For current position, subscribe to the following topic:
 # rullgardin01/cover/rullgardin01_roller/position/state
-# 
+#
 # To set position, publish to the following topic: (0-100, 0=close, 100=open)
 # rullgardin01/cover/rullgardin01_roller/position/command
-# 
+#
 # To stop, closing or opening, publish the current position to the following topic:
 # rullgardin01/cover/rullgardin01_roller/position/command
-# 
-# To set "Silent drive switch", publish (ON/OFF) to the following topic: 
+#
+# To set "Silent drive switch", publish (ON/OFF) to the following topic:
 # rullgardin01/switch/rullgardin01_drive_mode_silent/command
 # rullgardin01/switch/rullgardin01_drive_mode_silent/command
-# 
+#
 # To set "Continous feedback switch", (ON/OFF) publish to the following topic:
 # rullgardin01/switch/rullgardin01_continous_feedback/command
 # rullgardin01/switch/rullgardin01_continous_feedback/command
-# 
+#
 # To Reboot ESP, publish (ON) to the following topic:
 # rullgardin01/switch/rullgardin01_restart/command
 #
@@ -88,13 +88,13 @@
 # Using POST you can control it using the following URL's
 # Open:
 # http://rullgardin01.local/cover/rullgardin01_roller/open
-# 
+#
 # Close:
 # http://rullgardin01.local/cover/rullgardin01_roller/close
 #
 # Stop current operation (while opening or closing):
 # http://rullgardin01.local/cover/rullgardin01_roller/stop
-# 
+#
 # Set position:
 #   fully closed:
 #   http://rullgardin01.local/cover/rullgardin01_roller/set?position=0.0
@@ -112,44 +112,44 @@ esphome:
   on_boot:
     - priority: -200.0
       then:
-      - stepper.report_position: # Set stepper to global variable
-          id: $mystepper
-          position: !lambda return id(${mystepper}_global);
-      - stepper.set_target: # Set stepper to global variable
-          id: $mystepper
-          target: !lambda return id(${mystepper}_global);
-      - if: # If blind is Closed
-          condition:
-            - lambda: 'return id(${mystepper}_global) == 0;'
-          then: # Publish state etc.
-            - cover.template.publish:
-                id: blinded
-                state: CLOSED
-            - globals.set:
-                id: last_action
-                value: '2'
-      - if: # If blind is Open
-          condition:
-            - lambda: 'return id(${mystepper}_global) == id(endstop);'
-          then: # Publish state etc.
-            - cover.template.publish:
-                id: blinded
-                state: OPEN
-                current_operation: IDLE
-            - globals.set:
-                id: last_action
-                value: '0'
-      - if: # If blind is Neither
-          condition:
-            - lambda: 'return (id(${mystepper}_global) != 0) && (id(${mystepper}_global) != id(endstop));'
-          then: #  # Publish state etc.
-            - cover.template.publish:
-                id: blinded
-                position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));'
-                current_operation: IDLE
-            - globals.set:
-                id: last_action
-                value: '0'
+        - stepper.report_position: # Set stepper to global variable
+            id: $mystepper
+            position: !lambda return id(${mystepper}_global);
+        - stepper.set_target: # Set stepper to global variable
+            id: $mystepper
+            target: !lambda return id(${mystepper}_global);
+        - if: # If blind is Closed
+            condition:
+              - lambda: 'return id(${mystepper}_global) == 0;'
+            then: # Publish state etc.
+              - cover.template.publish:
+                  id: blinded
+                  state: CLOSED
+              - globals.set:
+                  id: last_action
+                  value: '2'
+        - if: # If blind is Open
+            condition:
+              - lambda: 'return id(${mystepper}_global) == id(endstop);'
+            then: # Publish state etc.
+              - cover.template.publish:
+                  id: blinded
+                  state: OPEN
+                  current_operation: IDLE
+              - globals.set:
+                  id: last_action
+                  value: '0'
+        - if: # If blind is Neither
+            condition:
+              - lambda: 'return (id(${mystepper}_global) != 0) && (id(${mystepper}_global) != id(endstop));'
+            then: #  # Publish state etc.
+              - cover.template.publish:
+                  id: blinded
+                  position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));'
+                  current_operation: IDLE
+              - globals.set:
+                  id: last_action
+                  value: '0'
 
 ## Substitutions
 substitutions:
@@ -238,15 +238,20 @@ time:
 text_sensor:
   # Expose ESPHome version as sensor.
   - platform: version
-    name: "$hostname ESPHome Version"
+    name: '$hostname ESPHome Version'
   # Expose WiFi information as sensors.
   - platform: wifi_info
     ip_address:
-      name: "$hostname IP"
+      name: '$hostname IP'
     ssid:
-      name: "$hostname SSID"
+      name: '$hostname SSID'
     bssid:
-      name: "$hostname BSSID"
+      name: '$hostname BSSID'
+  - platform: template
+    name: '$hostname Friendly Name'
+    icon: 'mdi:information-outline'
+    lambda: |-
+      return {"$friendly_name"};
 
 ## Sensors with general information.
 sensor:
@@ -257,7 +262,7 @@ sensor:
   # WiFi Signal sensor.
   - platform: wifi_signal
     name: "$hostname WiFi Signal"
-    update_interval: 60s
+    update_interval: 120s
 
 ## Binary sensors
 binary_sensor:
