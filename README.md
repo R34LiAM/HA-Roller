@@ -1,8 +1,14 @@
 # HA-Roller
 ESPHOME roller blinds really cheap
+Motorized blinds extremely cheap (IKEA Fridans)
 
-Please see:
+Integrations:
+Home Assistant through ESPHome integration.
+MQTT (HomeKite/HomeBridge and more).
+HTTP Requests/REST API.
+Standalone w/o home automation integration.
++ more
 
-Motorized blinds extremely cheap (IKEA Fridans esphome HA Home Assistant or standalone)
+Should integrate with pretty much anything...
 
 https://www.thingiverse.com/thing:4889111
