@@ -194,7 +194,6 @@ wifi:
     static_ip: $coverip
     gateway: $covergatway
     subnet: $coversubnet
-
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "$hostname Hotspot"
@@ -213,7 +212,6 @@ logger:
 api:
   password: !secret api_password
   reboot_timeout: 120s
-  
 
 ## MQTT
 ## Uncomment below if you want to control it using MQTT
@@ -257,11 +255,10 @@ text_sensor:
 sensor:
   # Uptime sensor.
   - platform: uptime
-    name: "$hostname Uptime"
-
+    name: '$hostname Uptime'
   # WiFi Signal sensor.
   - platform: wifi_signal
-    name: "$hostname WiFi Signal"
+    name: '$hostname WiFi Signal'
     update_interval: 120s
 
 ## Binary sensors
@@ -271,83 +268,83 @@ binary_sensor:
       number: $pinButton # Connect Button to D1 and GND
       mode: INPUT_PULLUP
       inverted: True
-    name: "$hostname Button"
+    name: '$hostname Button'
     internal: True
     on_click:
-    - min_length: 50ms
-      max_length: 500ms
-      then: # Short press to OPEN/CLOSE blinds and also for setting up
-        - if: # If settings variable is on
-            condition:
-              - lambda: 'return id(settingmode) != 0;'
-            then: # Enter Setting Mode
-              - script.execute: setupbutton
-            else:
-              - if: # If blind is stopped while opening #0=STOPPED WHILE OPENING
-                  condition:
-                    - lambda: 'return id(last_action) == 0;'
-                  then:
-                    - globals.set:
-                        id: last_action
-                        value: '1'
-                    - lambda : 'auto call = id(blinded).make_call().set_command_close(); call.perform();'
-                  else:
-                    - if: # If blind is moving down #1=MOVING DOWN
-                        condition:
-                          - lambda: 'return id(last_action) == 1;'
-                        then:
-                          - globals.set:
-                              id: last_action
-                              value: '2'
-                          - lambda : 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
-                        else:
-                          - if: # If blind is stopped while closing #2=STOPPED WHILE CLOSING
-                              condition:
-                                - lambda: 'return id(last_action) == 2;'
-                              then:
-                                - globals.set:
-                                    id: last_action
-                                    value: '3'
-                                - lambda : 'auto call = id(blinded).make_call().set_command_open(); call.perform();'
-                              else:
-                                - if: # If blind is moving up #3=MOVING UP
-                                    condition:
-                                      - lambda: 'return id(last_action) == 3;'
-                                    then:
-                                      - globals.set:
-                                          id: last_action
-                                          value: '0'
-                                      - lambda : 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
+      - min_length: 50ms
+        max_length: 500ms
+        then: # Short press to OPEN/CLOSE blinds and also for setting up
+          - if: # If settings variable is on
+              condition:
+                - lambda: 'return id(settingmode) != 0;'
+              then: # Enter Setting Mode
+                - script.execute: setupbutton
+              else:
+                - if: # If blind is stopped while opening #0=STOPPED WHILE OPENING
+                    condition:
+                      - lambda: 'return id(last_action) == 0;'
+                    then:
+                      - globals.set:
+                          id: last_action
+                          value: '1'
+                      - lambda: 'auto call = id(blinded).make_call().set_command_close(); call.perform();'
+                    else:
+                      - if: # If blind is moving down #1=MOVING DOWN
+                          condition:
+                            - lambda: 'return id(last_action) == 1;'
+                          then:
+                            - globals.set:
+                                id: last_action
+                                value: '2'
+                            - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
+                          else:
+                            - if: # If blind is stopped while closing #2=STOPPED WHILE CLOSING
+                                condition:
+                                  - lambda: 'return id(last_action) == 2;'
+                                then:
+                                  - globals.set:
+                                      id: last_action
+                                      value: '3'
+                                  - lambda: 'auto call = id(blinded).make_call().set_command_open(); call.perform();'
+                                else:
+                                  - if: # If blind is moving up #3=MOVING UP
+                                      condition:
+                                        - lambda: 'return id(last_action) == 3;'
+                                      then:
+                                        - globals.set:
+                                            id: last_action
+                                            value: '0'
+                                        - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
 
-    - min_length: 4000ms
-      max_length: 10000ms
-      then: # Long press to Enter Setting Mode (4-10 Sec press)
-        - logger.log: "Entered Settings Mode"
-        ## TODO: blink wemos D1 mini onboard LED when in settings mode
-        - globals.set:
-            id: settingmode
-            value:  '1'
+      - min_length: 4000ms
+        max_length: 10000ms
+        then: # Long press to Enter Setting Mode (4-10 Sec press)
+          - logger.log: 'Entered Settings Mode'
+          ## TODO: blink wemos D1 mini onboard LED when in settings mode
+          - globals.set:
+              id: settingmode
+              value: '1'
 
   - platform: gpio
     pin:
       number: $pinReedSwitch
       mode: INPUT_PULLUP
-    name: "$hostname Window"
+    name: '$hostname Window'
     filters:
       - delayed_on: 999ms
     device_class: window
-
+    
 ## Stepper
 stepper:
   - platform: a4988
     id: $mystepper
-    dir_pin: 
+    dir_pin:
       number: $pina
       inverted: false
-    step_pin: 
+    step_pin:
       number: $pinb
       inverted: false
-    sleep_pin: 
+    sleep_pin:
       number: $pinc
       inverted: false
     max_speed: ${speed} # Speed of the motor
@@ -375,7 +372,7 @@ globals:
     type: int
     restore_value: no
     initial_value: '0'
-    
+
   - id: drivemode # Boolean for Silent Drive Mode
     type: bool
     restore_value: no
@@ -385,25 +382,24 @@ globals:
     type: bool
     restore_value: no
     initial_value: '1' # Default value for continous feedback: Set to '1' and the cover reports back current position continously / Set to '0' and the cover updates in the beginning and end of the requested operation
-    
+
   - id: last_action # Integer for last action
     type: int
     restore_value: no
 #    initial_value: '0'
-    #0=STOPPED WHILE OPENING
-    #1=CLOSING / MOVING DOWN
-    #2=STOPPED WHILE CLOSING
-    #3=OPENING / MOVING UP
-
+#0=STOPPED WHILE OPENING
+#1=CLOSING / MOVING DOWN
+#2=STOPPED WHILE CLOSING
+#3=OPENING / MOVING UP
 
 ## Switch
 switch:
   # Switch to restart the device
   - platform: restart
-    name: "$hostname Restart"
+    name: '$hostname Restart'
 
   - platform: template
-    name: "$hostname Setup Switch" # Switch to enter Setup Mode
+    name: '$hostname Setup Switch' # Switch to enter Setup Mode
     id: setupswitch
     lambda: |-
       if (id(settingmode) != 0) {
@@ -413,16 +409,16 @@ switch:
       }
     turn_on_action:
       then:
-        - logger.log: "Entered Settings Mode"
+        - logger.log: 'Entered Settings Mode'
         - globals.set:
             id: settingmode
-            value:  '1'
+            value: '1'
     turn_off_action:
       then:
-        - logger.log: "Exiting Settings Mode"
+        - logger.log: 'Exiting Settings Mode'
         - globals.set:
             id: settingmode
-            value:  '0'
+            value: '0'
   - platform: template
     name: ${hostname} Setup Button # Switch to replicate the Physical Button
     id: hasetup
@@ -434,8 +430,8 @@ switch:
             - script.execute: setupbutton
             - switch.turn_off: hasetup
   - platform: template
-    icon: "mdi:tortoise"
-    name: "$hostname Drive Mode Silent" # Switch to activate silent drive mode
+    icon: 'mdi:tortoise'
+    name: '$hostname Drive Mode Silent' # Switch to activate silent drive mode
     id: drivemodeswitch
     lambda: |-
       if (id(drivemode) != 0) {
@@ -445,24 +441,24 @@ switch:
       }
     restore_state: false
     turn_on_action:
-      - logger.log: "Drive Mode Silent"
+      - logger.log: 'Drive Mode Silent'
       - globals.set:
           id: drivemode
-          value:  '1'
+          value: '1'
       - stepper.set_speed:
           id: $mystepper
           speed: ${silentspeed}
     turn_off_action:
-      - logger.log: "Drive Mode Speed"
+      - logger.log: 'Drive Mode Speed'
       - globals.set:
           id: drivemode
-          value:  '0'
+          value: '0'
       - stepper.set_speed:
           id: $mystepper
           speed: ${speed}
   - platform: template
-    icon: "mdi:sync"
-    name: "$hostname Continous Feedback" # Switch to activate continous feedback
+    icon: 'mdi:sync'
+    name: '$hostname Continous Feedback' # Switch to activate continous feedback
     id: feedbackswitch
     lambda: |-
       if (id(feedback) != 0) {
@@ -472,24 +468,24 @@ switch:
       }
     restore_state: false
     turn_on_action:
-      - logger.log: "Activated Continous Feedback"
+      - logger.log: 'Activated Continous Feedback'
       - globals.set:
           id: feedback
-          value:  '1'
+          value: '1'
     turn_off_action:
-      - logger.log: "Disabled Continous Feedback"
+      - logger.log: 'Disabled Continous Feedback'
       - globals.set:
           id: feedback
-          value:  '0'
+          value: '0'
 
 ## Cover
 cover:
   - platform: template
-    name: "$hostname Roller"
+    name: '$hostname Roller'
     id: blinded
     open_action:
       then:
-        - logger.log: "Opening"
+        - logger.log: 'Opening'
         - stepper.set_target: # Send stepper to endstop
             id: $mystepper
             target: !lambda return id(endstop);
@@ -509,26 +505,26 @@ cover:
             else: # without continous feedback
               - cover.template.publish:
                   id: blinded
-                  position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));' 
+                  position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));'
                   current_operation: OPENING
               - wait_until: # Wait until endstop reached
                   lambda: 'return (id($mystepper).current_position == id(endstop));'
         - globals.set: # Set global to current position
             id: ${mystepper}_global
-            value: !lambda return id($mystepper).current_position; 
+            value: !lambda return id($mystepper).current_position;
         - globals.set: # Set toggle to OPEN (No need for 'optimistic mode')
             id: openclosed
             value: '1'
         - cover.template.publish:
             id: blinded
-            state: OPEN 
+            state: OPEN
             current_operation: IDLE
         - globals.set:
             id: last_action
             value: '0'
     close_action:
       then:
-        - logger.log: "Closing"
+        - logger.log: 'Closing'
         - stepper.set_target: # Send stepper to 0
             id: $mystepper
             target: '0'
@@ -544,17 +540,17 @@ cover:
                         id: blinded
                         position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));'
                         current_operation: CLOSING
-                    - delay: ${delaybetweenupdates}            
+                    - delay: ${delaybetweenupdates}
             else: # without continous feedback
               - cover.template.publish:
                   id: blinded
-                  position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));' 
+                  position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));'
                   current_operation: CLOSING
               - wait_until: # Wait until endstop reached
                   lambda: 'return id($mystepper).current_position == 0;'
         - globals.set: # Set global to current position
             id: ${mystepper}_global
-            value: !lambda return id($mystepper).current_position; 
+            value: !lambda return id($mystepper).current_position;
         - globals.set: # Set toggle to CLOSED (No need for 'optimistic mode')
             id: openclosed
             value: '0'
@@ -587,10 +583,10 @@ cover:
                   lambda: 'return id($mystepper).current_position == (int(id(endstop) * pos));'
         - globals.set: # Set global to current position
             id: ${mystepper}_global
-            value: !lambda return id($mystepper).current_position; 
+            value: !lambda return id($mystepper).current_position;
         - cover.template.publish:
             id: blinded
-            position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));' 
+            position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));'
             current_operation: IDLE
     stop_action:
       then:
@@ -602,7 +598,7 @@ cover:
             value: !lambda return id($mystepper).current_position;
         - cover.template.publish:
             id: blinded
-            position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));' 
+            position: !lambda 'return (float(float(id($mystepper).current_position) / float(id(endstop))));'
             current_operation: IDLE
     has_position: true
     device_class: blind
@@ -615,7 +611,7 @@ script:
           condition:
             - lambda: 'return (id(settingmode) == 3);'
           then:
-            - logger.log: "Pressed Setup Button: Mode 3"
+            - logger.log: 'Pressed Setup Button: Mode 3'
             - stepper.set_target: # Set Stepper position
                 id: $mystepper
                 target: !lambda return id($mystepper).current_position;
@@ -627,20 +623,20 @@ script:
                 value: !lambda return id($mystepper).current_position;
             - globals.set: # Reset Setting Mode
                 id: settingmode
-                value:  '0'
+                value: '0'
             - globals.set: # Set toggle to Open
                 id: openclosed
                 value: '1'
             - cover.template.publish:
                 id: blinded
-                state: OPEN 
+                state: OPEN
                 current_operation: IDLE
-            - logger.log: "Exiting Setting Mode"
+            - logger.log: 'Exiting Setting Mode'
       - if:
           condition:
             - lambda: 'return (id(settingmode) == 2);'
           then:
-            - logger.log: "Pressed Setup Button: Mode 2"
+            - logger.log: 'Pressed Setup Button: Mode 2'
             - stepper.report_position: # Reset Stepper position to 0
                 id: $mystepper
                 position: '0'
@@ -655,15 +651,15 @@ script:
                 target: '72000'
             - globals.set: # Advance setup to next mode
                 id: settingmode
-                value:  '3'
+                value: '3'
       - if:
           condition:
             - lambda: 'return (id(settingmode) == 1);'
           then:
-            - logger.log: "Pressed Setup Button: Mode 1"
+            - logger.log: 'Pressed Setup Button: Mode 1'
             - stepper.report_position: # Set Stepper position to 72000, makes it move to 0 (Closed)
                 id: $mystepper
                 position: '72000'
             - globals.set: # Advance setup to next mode
                 id: settingmode
-                value:  '2'
+                value: '2'
