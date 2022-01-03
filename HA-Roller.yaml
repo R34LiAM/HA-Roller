@@ -154,6 +154,7 @@ esphome:
 ## Substitutions
 substitutions:
   hostname: "rullgardin01" #hostname/devicename/esphome sensors (keep lcase)
+  friendly_name: 'Vardagsrum stora fönstret' #More easily identify you roller
   coverip: "192.168.x.x" #static IP
   covergatway: "192.168.x.x"
   coversubnet: "255.255.255.0"
