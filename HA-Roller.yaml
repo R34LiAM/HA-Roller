@@ -108,7 +108,7 @@ esphome:
   name: $hostname
   platform: ESP8266
   board: nodemcuv2
-  esp8266_restore_from_flash: True
+  esp8266_restore_from_flash: true
   on_boot:
     - priority: -200.0
       then:
@@ -251,6 +251,20 @@ text_sensor:
     lambda: |-
       return {"$friendly_name"};
 
+## Buttons
+button:
+  # Button to restart the device
+  - platform: restart
+    name: '$hostname Restart'
+  - platform: template
+    name: ${hostname} Setup Button # Button to replicate the Physical Button once Settings Mode has been entered
+    on_press:
+      - if: # If settings variable is on
+          condition:
+            - lambda: 'return id(settingmode) != 0;'
+          then: # Enter Setting Mode
+            - script.execute: setupbutton
+
 ## Sensors with general information.
 sensor:
   # Uptime sensor.
@@ -267,9 +281,9 @@ binary_sensor:
     pin:
       number: $pinButton # Connect Button to D1 and GND
       mode: INPUT_PULLUP
-      inverted: True
+      inverted: true
     name: '$hostname Button'
-    internal: True
+    internal: true
     on_click:
       - min_length: 50ms
         max_length: 500ms
@@ -355,17 +369,17 @@ stepper:
 globals:
   - id: ${mystepper}_global # Integer for storing the stepper position in case of reboot
     type: int
-    restore_value: True
+    restore_value: true
     initial_value: '0'
 
   - id: openclosed # Boolean to store OPEN/CLOSED state
     type: bool
-    restore_value: True
+    restore_value: true
     initial_value: '0'
 
   - id: endstop # Variable for storing ENDSTOP (how far to move stepper)
     type: int
-    restore_value: True
+    restore_value: true
     initial_value: '1000'
 
   - id: settingmode # Integer for Setup Mode
@@ -394,10 +408,6 @@ globals:
 
 ## Switch
 switch:
-  # Switch to restart the device
-  - platform: restart
-    name: '$hostname Restart'
-
   - platform: template
     name: '$hostname Setup Switch' # Switch to enter Setup Mode
     id: setupswitch
@@ -419,16 +429,6 @@ switch:
         - globals.set:
             id: settingmode
             value: '0'
-  - platform: template
-    name: ${hostname} Setup Button # Switch to replicate the Physical Button
-    id: hasetup
-    turn_on_action:
-      - if: # If settings variable is on
-          condition:
-            - lambda: 'return id(settingmode) != 0;'
-          then: # Enter Setting Mode
-            - script.execute: setupbutton
-            - switch.turn_off: hasetup
   - platform: template
     icon: 'mdi:tortoise'
     name: '$hostname Drive Mode Silent' # Switch to activate silent drive mode
@@ -659,7 +659,7 @@ script:
             - logger.log: 'Pressed Setup Button: Mode 1'
             - stepper.report_position: # Set Stepper position to 72000, makes it move to 0 (Closed)
                 id: $mystepper
-                position: '72000'
+                position: '720000'
             - globals.set: # Advance setup to next mode
                 id: settingmode
                 value: '2'
