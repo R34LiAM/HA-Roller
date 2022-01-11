@@ -50,6 +50,9 @@
 # CONTROL USING MQTT TOPICS
 ##########################################################
 ##########################################################
+# If you enable MQTT and you do not use the “native API” for Home Assistant, comment out "api:" see here:
+# https://esphome.io/components/mqtt.html
+#
 # The topics change according to your [hostname] defined
 # under the substitutions section below. Example below
 # is with hostname set to "rullgardin01"
