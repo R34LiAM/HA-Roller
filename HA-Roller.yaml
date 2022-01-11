@@ -112,6 +112,9 @@ esphome:
   on_boot:
     - priority: -200.0
       then:
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Started'
         - stepper.report_position: # Set stepper to global variable
             id: $mystepper
             position: !lambda return id(${mystepper}_global);
@@ -128,6 +131,9 @@ esphome:
               - globals.set:
                   id: last_action
                   value: '2'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: 'Closed'
         - if: # If blind is Open
             condition:
               - lambda: 'return id(${mystepper}_global) == id(endstop);'
@@ -139,6 +145,9 @@ esphome:
               - globals.set:
                   id: last_action
                   value: '0'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: 'Open'
         - if: # If blind is Neither
             condition:
               - lambda: 'return (id(${mystepper}_global) != 0) && (id(${mystepper}_global) != id(endstop));'
@@ -150,6 +159,14 @@ esphome:
               - globals.set:
                   id: last_action
                   value: '0'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: !lambda |-
+                    int pos = round(float(float(id($mystepper).current_position) / float(id(endstop))) * 100);
+                    return (
+                      ("Open: ") +
+                      (pos ? String(pos) + "%" : "")
+                    ).c_str();
 
 ## Substitutions
 substitutions:
@@ -161,9 +178,9 @@ substitutions:
   speed: 600 steps/s # Set the speed of the motor 600 ok for 6vdc@300ma (actually 7.6vdc) from ikea screwdriver for a fridans of 140 in width
   silentspeed: 100 steps/s # Set the speed of silent drive 100 near audible.
 
-  #specify your mqtt-broker ip, uncomment to use and don't forget to uncomment in the MQTT section below as well
+  #mqtt-broker ip, uncomment to use and don't forget to uncomment in the MQTT section below as well
   #mqtt_broker_ip: "192.168.x.x"
-
+  
   #uncomment pina, pinb and pinc for the microcontroller you are using
  
   #wemos d1 mini
@@ -246,11 +263,22 @@ text_sensor:
       name: '$hostname SSID'
     bssid:
       name: '$hostname BSSID'
+    mac_address:
+      name: "$hostname MAC"
   - platform: template
     name: '$hostname Friendly Name'
     icon: 'mdi:information-outline'
     lambda: |-
       return {"$friendly_name"};
+  - platform: template
+    name: '$hostname Status'
+    update_interval: never
+    id: current_status
+    icon: 'mdi:chart-box-outline'
+  - platform: template
+    name: $hostname Uptime HR
+    id: uptime_human
+    icon: mdi:clock-start
 
 ## Buttons
 button:
@@ -259,6 +287,7 @@ button:
     name: '$hostname Restart'
   - platform: template
     name: ${hostname} Setup Button # Button to replicate the Physical Button once Settings Mode has been entered
+    icon: 'mdi:gesture-tap-button'
     on_press:
       - if: # If settings variable is on
           condition:
@@ -271,6 +300,25 @@ sensor:
   # Uptime sensor.
   - platform: uptime
     name: '$hostname Uptime'
+    id: 'upptime'
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(upptime).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? String(days) + "d " : "") +
+                (hours ? String(hours) + "h " : "") +
+                (minutes ? String(minutes) + "m " : "") +
+                (String(seconds) + "s")
+              ).c_str();
   # WiFi Signal sensor.
   - platform: wifi_signal
     name: '$hostname WiFi Signal'
@@ -299,6 +347,9 @@ binary_sensor:
                     condition:
                       - lambda: 'return id(last_action) == 0;'
                     then:
+                      - text_sensor.template.publish:
+                          id: current_status
+                          state: 'Closing...'
                       - globals.set:
                           id: last_action
                           value: '1'
@@ -308,6 +359,14 @@ binary_sensor:
                           condition:
                             - lambda: 'return id(last_action) == 1;'
                           then:
+                            - text_sensor.template.publish:
+                                id: current_status
+                                state: !lambda |-
+                                  int pos = round(float(float(id($mystepper).current_position) / float(id(endstop))) * 100);
+                                  return (
+                                    (pos ? String(pos) + "% open" : "") +
+                                    (" / Stopped while closing")
+                                  ).c_str();
                             - globals.set:
                                 id: last_action
                                 value: '2'
@@ -317,6 +376,9 @@ binary_sensor:
                                 condition:
                                   - lambda: 'return id(last_action) == 2;'
                                 then:
+                                  - text_sensor.template.publish:
+                                      id: current_status
+                                      state: 'Opening...'
                                   - globals.set:
                                       id: last_action
                                       value: '3'
@@ -326,6 +388,14 @@ binary_sensor:
                                       condition:
                                         - lambda: 'return id(last_action) == 3;'
                                       then:
+                                        - text_sensor.template.publish:
+                                            id: current_status
+                                            state: !lambda |-
+                                              int pos = round(float(float(id($mystepper).current_position) / float(id(endstop))) * 100);
+                                              return (
+                                                (pos ? String(pos) + "% open" : "") +
+                                                (" / Stopped while opening")
+                                              ).c_str();
                                         - globals.set:
                                             id: last_action
                                             value: '0'
@@ -339,6 +409,9 @@ binary_sensor:
           - globals.set:
               id: settingmode
               value: '1'
+          - text_sensor.template.publish:
+              id: current_status
+              state: 'Setup activated, click to start'
 
   - platform: gpio
     pin:
@@ -410,7 +483,8 @@ globals:
 ## Switch
 switch:
   - platform: template
-    name: '$hostname Setup Switch' # Switch to enter Setup Mode
+    name: '$hostname Activate Setup' # Switch to enter Setup Mode
+    icon: 'mdi:cog-outline'
     id: setupswitch
     lambda: |-
       if (id(settingmode) != 0) {
@@ -424,12 +498,18 @@ switch:
         - globals.set:
             id: settingmode
             value: '1'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Setup activated, click to start'
     turn_off_action:
       then:
         - logger.log: 'Exiting Settings Mode'
         - globals.set:
             id: settingmode
             value: '0'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Setup cancelled'
   - platform: template
     icon: 'mdi:tortoise'
     name: '$hostname Drive Mode Silent' # Switch to activate silent drive mode
@@ -523,6 +603,9 @@ cover:
         - globals.set:
             id: last_action
             value: '0'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Open'
     close_action:
       then:
         - logger.log: 'Closing'
@@ -562,6 +645,9 @@ cover:
         - globals.set:
             id: last_action
             value: '2'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Closed'
     position_action:
       then:
         - stepper.set_target:
@@ -633,6 +719,9 @@ script:
                 state: OPEN
                 current_operation: IDLE
             - logger.log: 'Exiting Setting Mode'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Setup complete'
       - if:
           condition:
             - lambda: 'return (id(settingmode) == 2);'
@@ -649,10 +738,13 @@ script:
                 value: '0'
             - stepper.set_target: # Reset Stepper position to 72000
                 id: $mystepper
-                target: '72000'
+                target: '720000'
             - globals.set: # Advance setup to next mode
                 id: settingmode
                 value: '3'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Click once at top positon'
       - if:
           condition:
             - lambda: 'return (id(settingmode) == 1);'
@@ -664,3 +756,6 @@ script:
             - globals.set: # Advance setup to next mode
                 id: settingmode
                 value: '2'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Click once at bottom position'
