@@ -513,6 +513,8 @@ switch:
         - text_sensor.template.publish:
             id: current_status
             state: 'Setup cancelled'
+    restore_mode: ALWAYS_OFF
+
   - platform: template
     icon: 'mdi:tortoise'
     name: '$hostname Drive Mode Silent' # Switch to activate silent drive mode
@@ -523,7 +525,7 @@ switch:
       } else {
         return false;
       }
-    restore_state: false
+    restore_mode: RESTORE_DEFAULT_OFF
     turn_on_action:
       - logger.log: 'Drive Mode Silent'
       - globals.set:
@@ -540,9 +542,10 @@ switch:
       - stepper.set_speed:
           id: $mystepper
           speed: ${speed}
+
   - platform: template
     icon: 'mdi:sync'
-    name: '$hostname Continous Feedback' # Switch to activate continous feedback
+    name: '$hostname Continuous Feedback' # Switch to activate continuous feedback
     id: feedbackswitch
     lambda: |-
       if (id(feedback) != 0) {
@@ -550,14 +553,14 @@ switch:
       } else {
         return false;
       }
-    restore_state: false
+    restore_mode: RESTORE_DEFAULT_OFF
     turn_on_action:
-      - logger.log: 'Activated Continous Feedback'
+      - logger.log: 'Activated Continuous Feedback'
       - globals.set:
           id: feedback
           value: '1'
     turn_off_action:
-      - logger.log: 'Disabled Continous Feedback'
+      - logger.log: 'Disabled Continuous Feedback'
       - globals.set:
           id: feedback
           value: '0'
