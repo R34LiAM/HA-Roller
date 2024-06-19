@@ -42,7 +42,7 @@
 # !secret ota_password
 # !secret wifi_ssid
 # !secret wifi_password
-# !secret api_password
+# !secret api_key - it is recomended to have these unique for each device
 # !secret ap_fallback_wifi_password
 
 ##########################################################
@@ -231,7 +231,8 @@ logger:
 ## Enable Home Assistant API
 ## Comment out if not using Home Assistant
 api:
-  password: !secret api_password
+  encryption:
+    key: !secret api_key
   reboot_timeout: 120s
 
 ## MQTT
