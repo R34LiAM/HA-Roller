@@ -42,7 +42,7 @@
 # !secret ota_password
 # !secret wifi_ssid
 # !secret wifi_password
-# !secret api_password
+# !secret api_key - it is recomended to have these unique for each device
 # !secret ap_fallback_wifi_password
 
 ##########################################################
@@ -109,9 +109,6 @@
 
 esphome:
   name: $hostname
-  platform: ESP8266
-  board: nodemcuv2
-  esp8266_restore_from_flash: true
   on_boot:
     - priority: -200.0
       then:
@@ -171,6 +168,10 @@ esphome:
                       (pos ? String(pos) + "%" : "")
                     ).c_str();
 
+esp8266:
+  board: nodemcuv2
+  restore_from_flash: true
+  
 ## Substitutions
 substitutions:
   hostname: "rullgardin01" #hostname/devicename/esphome sensors (keep lcase)
@@ -231,7 +232,8 @@ logger:
 ## Enable Home Assistant API
 ## Comment out if not using Home Assistant
 api:
-  password: !secret api_password
+  encryption:
+    key: !secret api_key
   reboot_timeout: 120s
 
 ## MQTT
@@ -513,6 +515,8 @@ switch:
         - text_sensor.template.publish:
             id: current_status
             state: 'Setup cancelled'
+    restore_mode: ALWAYS_OFF
+
   - platform: template
     icon: 'mdi:tortoise'
     name: '$hostname Drive Mode Silent' # Switch to activate silent drive mode
@@ -523,7 +527,7 @@ switch:
       } else {
         return false;
       }
-    restore_state: false
+    restore_mode: RESTORE_DEFAULT_OFF
     turn_on_action:
       - logger.log: 'Drive Mode Silent'
       - globals.set:
@@ -540,9 +544,10 @@ switch:
       - stepper.set_speed:
           id: $mystepper
           speed: ${speed}
+
   - platform: template
     icon: 'mdi:sync'
-    name: '$hostname Continous Feedback' # Switch to activate continous feedback
+    name: '$hostname Continuous Feedback' # Switch to activate continuous feedback
     id: feedbackswitch
     lambda: |-
       if (id(feedback) != 0) {
@@ -550,14 +555,14 @@ switch:
       } else {
         return false;
       }
-    restore_state: false
+    restore_mode: RESTORE_DEFAULT_OFF
     turn_on_action:
-      - logger.log: 'Activated Continous Feedback'
+      - logger.log: 'Activated Continuous Feedback'
       - globals.set:
           id: feedback
           value: '1'
     turn_off_action:
-      - logger.log: 'Disabled Continous Feedback'
+      - logger.log: 'Disabled Continuous Feedback'
       - globals.set:
           id: feedback
           value: '0'
