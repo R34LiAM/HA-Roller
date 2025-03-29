@@ -2,7 +2,10 @@
 # Heavily inspried by PeterG: https://www.thingiverse.com/pgote/designs
 # And RoadkillUK: https://github.com/RoadkillUK/Motor-on-a-Roller-Blind-for-ESPHOME
 
-# All that needs to be changed before flashing this is in the 'substitutions:' section below, you may need to change the 'esp8266:' section as well depending on what board and model you use...
+# Tested on ESPHome Device Builder 2025.3.0 but will probably work fine on later revisions
+
+# All that needs to be changed before compiling and flashing is in the 'substitutions:' section below.
+# you may need to change the 'esp8266:' section as well depending on what board and model you use...
 
 # Once the ESP has booted for the first time it's time for configuration
 # The easiest way, if using Home Assistant, is to use the yaml-code in the card from this repo.
@@ -22,7 +25,8 @@
 # This sketch also includes support for a momentary button wired to the substitute value of 'pinButton' below, which can be used in the following way:
 # 1) Press button for > 4 seconds and then release, to enter setup mode.
 # 2) Press button again to start closing the blind.
-# 3) Once the position you want as 100% closed (fully closed) is reached, press the button. The blind will instantly start to open again (actually resets the stepper position to 0)
+# 3) Once the position you want as 100% closed (fully closed) is reached, press the button. 
+#    The blind will instantly start to open again (actually resets the stepper position to 0)
 # 4) Once the position you want as 100% open (fully open) is reached, press the button.
 # 5) Done.
 # The button loops through states as: open/stop/close/stop/open....... once configured.
@@ -43,10 +47,12 @@
 
 # What has been changed added?!
 # Added some extra sensors that report back to Home Assistant since they are availiable for free (uptime / reset button / wifi signal and so on)
-# added support for stopping while moving up and down and start moving in the reverse direction using just one button
-# added ability to choose wether ESP should report back to Home Assistant continuously or only when it has reached the set position (combined the functionallity of RoadkillUK's two seperate scripts)
-# removed 'Silent Drive Mode' option, since the stepper speed can now be easily adjusted at runtime.
-# added ability to "adjust" stepper speed, perfect for automations that run late at night when a more quiet operation is preferred over speed. (for a 28byj-48 5v stepper motor a value of 600-700 steps/s works well)
+# Added support for stopping while moving up and down and start moving in the reverse direction using just one button
+# Added ability to choose wether ESP should report back to Home Assistant continuously or only when it has reached the set position (combined the functionallity of RoadkillUK's two seperate scripts)
+# Removed 'Silent Drive Mode' option, since the stepper speed can now be easily adjusted at runtime
+# Added ability to "adjust" stepper speed, perfect for automations that run late at night when more quiet operation is preferred over speed. (for a 28byj-48 5v stepper motor a value of 600-700 steps/s works well)
+# Added visual cue, the onboard LED of the Wemos D1 mini lights up (blue) to indicate when in setup mode, might need "allow_other_uses: true" for older designs
+# Rearranged a whole lot to make it easier to change needed parameters
 
 # Pretty much everything is customized in the "substitutions"-section below.
 # If not using a "secrets"-file (which I recommend) you also have to change:
@@ -111,6 +117,94 @@
 #   http://rullgardin01.local/cover/rullgardin01_roller/set?position=0.5
 #   And so on...
 
+# Wemos D1 mini pin/GPIO layout
+# D0 = GPIO16
+# D1 = GPIO5
+# D2 = GPIO4
+# D3 = GPIO0
+# D4 = GPIO2 (internal LED, don't use or add "allow_other_uses: true" might work)
+# D5 = GPIO14
+# D6 = GPIO12
+# D7 = GPIO13
+# D8 = GPIO15
+# TX = GPIO1
+# RX = GPIO3
+# A0 = ADC0
+
+## Substitutions
+substitutions:
+  sub_hostname: 'rullgardin01' # hostname/devicename/esphome sensors (keep lcase)
+  sub_friendly_name: 'Kontor fönster' # More easily identify you roller
+  coverip: '192.168.0.150' # Static IP
+  covergatway: '192.168.0.1'
+  coversubnet: '255.255.255.0'
+  speed: '700' # Default value, as an example, steps/s (speed) of the motor set to a value between 600-700 is usually ok for operating a "fridans" of 140 cm in width...
+  speedsteps: '50' # With what value should the step/s (speed) increase/decrease when configuring.
+  minspeed: '100' # What value could be set as the minimum step/s (speed).
+  maxspeed: '1000' # What value could be set as the maximum step/s (speed).
+  ## specify your mqtt-broker ip, uncomment to use and don't forget to uncomment the "MQTT:" section below as well
+  #mqtt_broker_ip: '192.168.0.211'
+  mystepper: my_stepper # Name of the stepper motor (leave as is) everythings breaks if you do.
+  delaybetweenupdates: 500 ms # Milliseconds between updates being pushed to Home Assistant ESPHome API
+
+  ## Uncomment pina, pinb and pinc for the microcontroller you are using
+  ## If you have conflicts between pins this might help: "allow_other_uses: true"
+
+  ## Wemos d1 mini
+  #pinPIR: D7 # PIR pin
+  #pinIRSend: D5 # Playback IR signals from MQTT topic
+  #pinXtra: # Might be used for something of your choice
+  pinButton: TX # physical button to controll roller (up/stop/down/stop/up.......) (hold for ~5 seconds to enter setup mode/press once to start closing,press again at maximum-/bottom position, lastly press at minimum-/top position)
+  pinReedSwitch: RX # Used for window reed(magnetic) sensor
+  pina: D4 # SLEEP & RESET > A4988
+  pinb: D3 # STEP > A4988
+  pinc: D2 # DIRECTION > A4988
+  pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
+
+## MQTT
+## Uncomment below if you want to control it using MQTT and uncomment "api:"-section  for HA ESPHome API above
+#mqtt:
+#  broker: $mqtt_broker_ip
+#  discovery: True
+#  username:
+#  password:
+#  on_message:
+#    topic: $sub_hostname/ir/send
+#    then:
+#    - remote_transmitter.transmit_raw:
+#        carrier_frequency: 38kHz
+#        code: !lambda |-
+#          std::string txstr = x;
+#          std::vector<int> txv;
+#          char * token;
+#          char seps[] = ",";
+#          token = strtok (&txstr[0],seps);
+#          while (token != NULL)
+#          {
+#            txv.push_back( atoi(token) );
+#            token = strtok (NULL, seps);
+#          }
+#          return txv;
+
+
+## Enable Home Assistant ESPHome API
+## Comment out this section if you are not using HA ESPHome API and instead use MQTT or if you use them as standalone units controlled via the "action" button. (standalone means you comment out both MQTT and API)
+api:
+  encryption:
+    key: !secret api_key
+  reboot_timeout: 120s
+
+# No changes needed below this line, unless you know what you are doing ##################################################################################################
+# No changes needed below this line, unless you know what you are doing ##################################################################################################
+# No changes needed below this line, unless you know what you are doing ##################################################################################################
+# No changes needed below this line, unless you know what you are doing ##################################################################################################
+
+## Board model
+esp8266:
+  board: d1_mini
+  restore_from_flash: true
+
+## ESPHome
 esphome:
   name: '${sub_hostname}'
   friendly_name: '${sub_hostname} (${sub_friendly_name})'
@@ -173,48 +267,6 @@ esphome:
                       (pos ? String(pos) + "%" : "")
                     ).c_str();
 
-
-v
-  board: d1_mini
-  restore_from_flash: true
-
-## Substitutions
-substitutions:
-  sub_hostname: 'rullgardin01' #hostname/devicename/esphome sensors (keep lcase)
-  sub_friendly_name: 'Kontor fönster' #More easily identify you roller
-  coverip: '192.168.0.150' #static IP
-  covergatway: '192.168.0.1'
-  coversubnet: '255.255.255.0'
-  speed: '700' # As an example, steps/s (speed) of the motor set to value between 600-700 is ok for 6vdc@300ma (actually 7.6vdc) power supply when operating a "fridans" of 140 cm in width...
-  speedsteps: '50' # With what value should the step/s (speed) increase/decrease.
-  minspeed: '100' # What value should be the minimum step/s (speed).
-  maxspeed: '1000' # What value should be the maximum step/s (speed).
-  #specify your mqtt-broker ip, uncomment to use and don't forget to uncomment the "MQTT:" section below as well
-#  mqtt_broker_ip: '192.168.0.211'
-
-  #uncomment pina, pinb and pinc for the microcontroller you are using
- 
-  #wemos d1 mini
-  #pinPIR: D7 # PIR pin
-  #pinIRSend: D6 # Playback IR signals from MQTT topic
-  pinButton: TX # physical button to controll roller (up/stop/down/stop/up.......) (hold for ~5 seconds to enter setup mode/press once to start closing,press again at maximum-/bottom position,lastly press at minimum-/top position)
-  pinReedSwitch: RX # Used for window reed(magnetic) sensor
-  #pinXtra: D1 #might be used for something
-  pina: D4
-  pinb: D3
-  pinc: D2
- 
-  #nodemcu v2/v3
-  #pinButton: D7 # physical button to controll roller (up/stop/down/stop/up.......) (hold for ~5 seconds to enter setup mode/press once to start closing,press again at maximum-/bottom position,lastly press at minimum-/top position)
-  #pinReedSwitch: D6 #Used for window reed(magnetic) sensor
-  #pinXtra: D5 #might be used for something
-  #pina: TX
-  #pinb: RX
-  #pinc: D8
-
-  mystepper: my_stepper # Name of the stepper motor (leave as is)
-  delaybetweenupdates: 500 ms # milliseconds between updates being pushed to Home Assistant ESPHome API
-
 ## WIFI
 wifi:
   power_save_mode: HIGH
@@ -226,7 +278,7 @@ wifi:
     static_ip: ${coverip}
     gateway: ${covergatway}
     subnet: ${coversubnet}
-  # Enable fallback hotspot (captive portal) in case wifi connection fails...
+  ## Enable fallback hotspot (captive portal) in case wifi connection fails...
   ap:
     ssid: '${sub_hostname} Hotspot'
     password: !secret ap_fallback_wifi_password
@@ -238,38 +290,6 @@ web_server:
 ## Enable logging
 logger:
 #  level: VERBOSE
-
-## Enable Home Assistant ESPHome API
-## Comment out if not using HA ESPHome API and instead use MQTT
-api:
-  encryption:
-    key: !secret api_key
-  reboot_timeout: 120s
-
-## MQTT
-## Uncomment below if you want to control it using MQTT and uncomment "api:"-section  for HA ESPHome API above
-#mqtt:
-#  broker: $mqtt_broker_ip
-#  discovery: True
-#  username:
-#  password:
-#  on_message:
-#    topic: $sub_hostname/ir/send
-#    then:
-#    - remote_transmitter.transmit_raw:
-#        carrier_frequency: 38kHz
-#        code: !lambda |-
-#          std::string txstr = x;
-#          std::vector<int> txv;
-#          char * token;
-#          char seps[] = ",";
-#          token = strtok (&txstr[0],seps);
-#          while (token != NULL)
-#          {
-#            txv.push_back( atoi(token) );
-#            token = strtok (NULL, seps);
-#          }
-#          return txv;
 
 ## Captive portal
 captive_portal:
@@ -292,10 +312,10 @@ time:
 
 ## Text sensors with general information.
 text_sensor:
-  # Expose ESPHome version as sensor.
+  ## Expose ESPHome version as sensor.
   - platform: version
     name: 'ESPHome Version'
-  # Expose WiFi information as sensors.
+  ## Expose WiFi information as sensors.
   - platform: wifi_info
     ip_address:
       name: 'IP'
@@ -330,7 +350,7 @@ text_sensor:
 
 ## Buttons
 button:
-  # Button to restart the device
+  ## Button to restart the device
   - platform: restart
     name: 'Restart'
     icon: 'mdi:restart'
@@ -349,7 +369,7 @@ button:
 
 ## Sensors with general information.
 sensor:
-  # Uptime sensor.
+  ## Uptime sensor.
   - platform: uptime
     name: 'Uptime'
     id: 'upptime'
@@ -372,7 +392,7 @@ sensor:
                 (minutes ? String(minutes) + "m " : "") +
                 (String(seconds) + "s")
               ).c_str();
-  # WiFi Signal sensor.
+  ## WiFi Signal sensor.
   - platform: wifi_signal
     name: 'WiFi Signal'
     update_interval: 120s
@@ -389,7 +409,7 @@ binary_sensor:
     pin:
       number: ${pinButton} # Connect Button to your desired pin and GND
       mode: INPUT_PULLUP
-      inverted: true #If using a touch sensor instead of a "physical" button set this to false, else set it to true
+      inverted: true # If using a touch sensor instead of a "physical" button set this to false, else set it to true
     name: 'Action Button'
     internal: true
     on_click:
@@ -464,7 +484,8 @@ binary_sensor:
         max_length: 10000ms
         then: # Long press to Enter Setting Mode (4-10 Sec press)
           - logger.log: 'Entered Settings Mode'
-          ## TODO: blink wemos D1 mini onboard LED when in settings mode, need to change pinouts so have not bothered
+          - switch.turn_on:
+              id: blue_led
           - globals.set:
               id: settingmode
               value: '1'
@@ -488,6 +509,7 @@ stepper:
     dir_pin:
       number: ${pina}
       inverted: false
+      allow_other_uses: true
     step_pin:
       number: ${pinb}
       inverted: false
@@ -529,10 +551,10 @@ globals:
     type: int
     restore_value: no
 #    initial_value: '0'
-#0=STOPPED WHILE OPENING
-#1=CLOSING / MOVING DOWN
-#2=STOPPED WHILE CLOSING
-#3=OPENING / MOVING UP
+## 0=STOPPED WHILE OPENING
+## 1=CLOSING / MOVING DOWN
+## 2=STOPPED WHILE CLOSING
+## 3=OPENING / MOVING UP
 
 number:
   - platform: template
@@ -577,6 +599,8 @@ switch:
         - text_sensor.template.publish:
             id: current_status
             state: 'Setup has been activated, click [Action Button] to set and store the closed and open positions.'
+        - switch.turn_on:
+            id: blue_led
     turn_off_action:
       then:
         - logger.log: 'Exiting Settings Mode'
@@ -589,6 +613,9 @@ switch:
         - text_sensor.template.publish:
             id: current_status
             state: 'Setup cancelled'
+        - switch.turn_off:
+            id: blue_led
+            
   - platform: template
     name: 'Continuous Feedback' # Switch to activate continuous feedback
     id: feedbackswitch
@@ -617,6 +644,18 @@ switch:
           id: current_status
           state: 'Disabled Continuous Feedback'
 
+  - platform: gpio
+    name: 'Blue LED'
+    internal: true
+    id: blue_led
+    icon: 'mdi:alarm-light'
+    pin:
+      number: ${pinLED}
+      mode: OUTPUT
+      allow_other_uses: true
+    inverted: true
+    restore_mode: ALWAYS_OFF
+
 ## Cover
 cover:
   - platform: template
@@ -634,7 +673,7 @@ cover:
         - if: # If continuous feedback switch is on
             condition:
               - lambda: 'return id(feedback) != 0;'
-            then: # with continuous feedback
+            then: # With continuous feedback
               - while:
                   condition:
                     lambda: 'return id(${mystepper}).current_position != id(endstop);'
@@ -644,7 +683,7 @@ cover:
                         position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
                         current_operation: OPENING
                     - delay: ${delaybetweenupdates}
-            else: # without contiunous feedback
+            else: # Without contiunous feedback
               - cover.template.publish:
                   id: blinded
                   position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
@@ -679,7 +718,7 @@ cover:
         - if: # If continuous feedback switch is on
             condition:
               - lambda: 'return id(feedback) != 0;'
-            then: # with continuous feedback
+            then: # With continuous feedback
               - while:
                   condition:
                     lambda: 'return id(${mystepper}).current_position != 0;'
@@ -689,7 +728,7 @@ cover:
                         position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
                         current_operation: CLOSING
                     - delay: ${delaybetweenupdates}
-            else: # without continuous feedback
+            else: # Without continuous feedback
               - cover.template.publish:
                   id: blinded
                   position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
@@ -726,7 +765,7 @@ cover:
         - if: # If continuous feedback switch is on
             condition:
               - lambda: 'return id(feedback) != 0;'
-            then: # with continuous feedback
+            then: # With continuous feedback
               - while:
                   condition:
                     lambda: 'return id(${mystepper}).current_position != int(id(endstop) * pos);'
@@ -735,7 +774,7 @@ cover:
                         id: blinded
                         position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
                     - delay: ${delaybetweenupdates}
-            else: # without continuous feedback
+            else: # Without continuous feedback
               - wait_until: # Wait until endstop reached
                   lambda: 'return id(${mystepper}).current_position == (int(id(endstop) * pos));'
         - globals.set: # Set global to current position
@@ -804,6 +843,8 @@ script:
             - text_sensor.template.publish:
                 id: current_status
                 state: 'Setup complete, settings stored.'
+            - switch.turn_off:
+                id: blue_led
       - if:
           condition:
             - lambda: 'return (id(settingmode) == 2);'
