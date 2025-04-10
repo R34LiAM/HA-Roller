@@ -147,18 +147,19 @@ substitutions:
   mystepper: my_stepper # Name of the stepper motor (leave as is) everythings breaks if you do.
   delaybetweenupdates: 500 ms # Milliseconds between updates being pushed to Home Assistant ESPHome API
 
-  ## Uncomment pina, pinb and pinc for the microcontroller you are using
+  ## Uncomment pinSLP, pinSTP and pinDIR for the microcontroller you are using
   ## If you have conflicts between pins this might help: "allow_other_uses: true"
 
   ## Wemos d1 mini
-  #pinPIR: D7 # PIR pin
+  #pinPIR: D7 # PIR (Passive IR sensor) pin
   #pinIRSend: D5 # Playback IR signals from MQTT topic
+  pinButton: GPIO1 #TX # physical button to controll the roller blind (up/stop/down/stop/up.......) (hold for +5 seconds to enter setup mode/press once to start closing, press again at maximum-/bottom position, lastly press at minimum-/top position)
+  pinReedSwitch: GPIO12 #D6 # Used for window open/closed, a reed(magnetic) sensor
   #pinXtra: # Might be used for something of your choice
-  pinButton: TX # physical button to controll roller (up/stop/down/stop/up.......) (hold for ~5 seconds to enter setup mode/press once to start closing,press again at maximum-/bottom position, lastly press at minimum-/top position)
-  pinReedSwitch: RX # Used for window reed(magnetic) sensor
-  pina: D4 # SLEEP & RESET > A4988
-  pinb: D3 # STEP > A4988
-  pinc: D2 # DIRECTION > A4988
+  pinDIR: GPIO0  # DIRECTION > A4988
+  pinSTP: GPIO4 # STEP > A4988
+  pinSLP: GPIO5 # SLEEP & RESET > A4988
+  pinDIRReversed: 'false' # Change to true if roller blind goes up instead of down and vice versa (reverse direction)
   pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
 
 ## MQTT
@@ -194,10 +195,10 @@ api:
     key: !secret api_key
   reboot_timeout: 120s
 
-# No changes needed below this line, unless you know what you are doing ##################################################################################################
-# No changes needed below this line, unless you know what you are doing ##################################################################################################
-# No changes needed below this line, unless you know what you are doing ##################################################################################################
-# No changes needed below this line, unless you know what you are doing ##################################################################################################
+# No changes needed below this line ##################################################################################################
+# No changes needed below this line ##################################################################################################
+# No changes needed below this line ##################################################################################################
+# No changes needed below this line ##################################################################################################
 
 ## Board model
 esp8266:
@@ -347,6 +348,12 @@ text_sensor:
     name: 'Uptime HR'
     id: uptime_human
     icon: 'mdi:timer-outline'
+  - platform: template
+    name: 'Reversed Direction'
+    id: stepper_operation
+    icon: 'mdi:swap-vertical-circle-outline'
+    lambda: |-
+      return {"${pinDIRReversed}"};
 
 ## Buttons
 button:
@@ -507,14 +514,13 @@ stepper:
   - platform: a4988
     id: $mystepper
     dir_pin:
-      number: ${pina}
-      inverted: false
-      allow_other_uses: true
+      number: ${pinDIR}
+      inverted: ${pinDIRReversed}
     step_pin:
-      number: ${pinb}
+      number: ${pinSTP}
       inverted: false
     sleep_pin:
-      number: ${pinc}
+      number: ${pinSLP}
       inverted: false
     max_speed: '${speed}' # Speed of the motor
     acceleration: inf
@@ -561,15 +567,15 @@ number:
     name: 'Speed'
     id: rollerspeed
     icon: 'mdi:speedometer'
-    max_value: 1000
-    min_value: 100
-    step: 50
+    max_value: '${maxspeed}'
+    min_value: '${minspeed}'
+    step: '${speedsteps}'
     mode: slider
-    initial_value: ${speed}
+    initial_value: '${speed}'
     optimistic: true
     on_value:
       - stepper.set_speed:
-          id: ${mystepper}
+          id: '${mystepper}'
           speed: !lambda "return x;"
       - text_sensor.template.publish:
           id: current_status
@@ -615,7 +621,7 @@ switch:
             state: 'Setup cancelled'
         - switch.turn_off:
             id: blue_led
-            
+
   - platform: template
     name: 'Continuous Feedback' # Switch to activate continuous feedback
     id: feedbackswitch
@@ -626,7 +632,7 @@ switch:
       } else {
         return false;
       }
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: RESTORE_DEFAULT_ON
     turn_on_action:
       - logger.log: 'Activated Continuous Feedback'
       - globals.set:
@@ -652,7 +658,6 @@ switch:
     pin:
       number: ${pinLED}
       mode: OUTPUT
-      allow_other_uses: true
     inverted: true
     restore_mode: ALWAYS_OFF
 
