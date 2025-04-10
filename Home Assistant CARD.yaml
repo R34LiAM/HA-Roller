@@ -19,6 +19,7 @@ cards:
     name: Window Lamp
     state_content:
       - state
+      - brightness
       - last_changed
   - type: vertical-stack
     cards:
