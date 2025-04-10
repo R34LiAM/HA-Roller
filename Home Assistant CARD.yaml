@@ -6,9 +6,9 @@ cards:
     vertical: false
     features_position: bottom
     state_content:
-      - last_changed
       - state
-    name: Window Status
+      - last_changed
+    name: Window
     icon: mdi:window-open-variant
   - features:
       - type: light-brightness
@@ -17,6 +17,9 @@ cards:
     features_position: inline
     vertical: false
     name: Window Lamp
+    state_content:
+      - state
+      - last_changed
   - type: vertical-stack
     cards:
       - features:
@@ -33,9 +36,9 @@ cards:
           action: more-info
         hide_state: false
         state_content:
-          - last_changed
           - state
           - current_position
+          - last_changed
         features_position: inline
         name: Roller Blind
       - type: horizontal-stack
