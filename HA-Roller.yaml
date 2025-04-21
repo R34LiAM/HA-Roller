@@ -136,7 +136,7 @@ substitutions:
   sub_hostname: 'rullgardin01' # hostname/devicename/esphome sensors (keep lcase)
   sub_friendly_name: 'Kontor fönster' # More easily identify you roller
   coverip: '192.168.0.150' # Static IP
-  covergatway: '192.168.0.1'
+  covergateway: '192.168.0.1'
   coversubnet: '255.255.255.0'
   speed: '700' # Default value, as an example, steps/s (speed) of the motor set to a value between 600-700 is usually ok for operating a "fridans" of 140 cm in width...
   speedsteps: '50' # With what value should the step/s (speed) increase/decrease when configuring.
@@ -150,6 +150,7 @@ substitutions:
   ## Uncomment pinSLP, pinSTP and pinDIR for the microcontroller you are using
   ## If you have conflicts between pins this might help: "allow_other_uses: true"
 
+# ****** New PCB ****** use below and uncomment "Legacy PCB"-section
   ## Wemos d1 mini
   #pinPIR: D7 # PIR (Passive IR sensor) pin
   #pinIRSend: D5 # Playback IR signals from MQTT topic
@@ -161,6 +162,16 @@ substitutions:
   pinSLP: GPIO5 # SLEEP & RESET > A4988
   pinDIRReversed: 'false' # Change to true if roller blind goes up instead of down and vice versa (reverse direction)
   pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
+
+# ****** Legacy PCB ****** use below and uncomment "New PCB"-section (be sure to also uncomment "allow_other_uses: true" at two locations below)
+#  pinButton: GPIO1 #TX # physical button to controll the roller blind (up/stop/down/stop/up.......) (hold for +5 seconds to enter setup mode/press once to start closing, press again at maximum-/bottom position, lastly press at minimum-/top position)
+#  pinReedSwitch: GPIO12 #D6 # Used for window open/closed, a reed(magnetic) sensor
+#  #pinXtra: # Might be used for something of your choice
+#  pinDIR: GPIO2  # DIRECTION > A4988
+#  pinSTP: GPIO0 # STEP > A4988
+#  pinSLP: GPIO4 # SLEEP & RESET > A4988
+#  pinDIRReversed: 'false' # Change to true if roller blind goes up instead of down and vice versa (reverse direction)
+#  pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
 
 ## MQTT
 ## Uncomment below if you want to control it using MQTT and uncomment "api:"-section  for HA ESPHome API above
@@ -277,7 +288,7 @@ wifi:
   use_address: ${coverip}
   manual_ip:
     static_ip: ${coverip}
-    gateway: ${covergatway}
+    gateway: ${covergateway}
     subnet: ${coversubnet}
   ## Enable fallback hotspot (captive portal) in case wifi connection fails...
   ap:
@@ -515,6 +526,8 @@ stepper:
     id: $mystepper
     dir_pin:
       number: ${pinDIR}
+      #Legacy uncomment "allow_other_uses: true" if using old pcb
+      #allow_other_uses: true
       inverted: ${pinDIRReversed}
     step_pin:
       number: ${pinSTP}
@@ -657,6 +670,8 @@ switch:
     icon: 'mdi:alarm-light'
     pin:
       number: ${pinLED}
+      #Legacy uncomment "allow_other_uses: true" if using old pcb
+      #allow_other_uses: true
       mode: OUTPUT
     inverted: true
     restore_mode: ALWAYS_OFF
