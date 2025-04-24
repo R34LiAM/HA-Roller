@@ -1,0 +1,1226 @@
+# REALiAM: https://github.com/R34LiAM/HA-Roller
+# Heavily inspried by PeterG: https://www.thingiverse.com/pgote/designs
+# And RoadkillUK: https://github.com/RoadkillUK/Motor-on-a-Roller-Blind-for-ESPHOME
+
+# Tested on ESPHome Device Builder 2025.3.0 but will probably work fine on later revisions
+
+# All that needs to be changed before compiling and flashing is in the 'substitutions:' section below.
+# you may need to change the 'esp8266:' section as well depending on what board and model you use...
+
+# Once the ESP has booted for the first time it's time for configuration
+# The easiest way, if using Home Assistant, is to use the yaml-code in the card from this repo.
+# OR access the webGUI at <coverIP>:80 or <hostname>.local:80 if you have mDNS, or use a hardwired button to configure it.
+# I recommend wiring a button so the roller can be controlled "manually" at the window, See setup option 2 below.
+# If no button is wired see setup option 1 or 3 below for setup using Home Assistant or the webGUI.
+
+# Setup option 1 (Easiest)
+#-----------------------------
+# Add the yaml-code from this repo to your Home Assistant dashboard.
+# 1) Expand the 'Setup, Settings and Parameters' section in the card and click 'Activate Setup'.
+# 2) Follow the on screen instructions...
+# Repeat from step 1 if you need to reconfigure in the future.
+
+# Setup option 2 (Recommended)
+#-----------------------------
+# This sketch also includes support for a momentary button wired to the substitute value of 'pinButton' below, which can be used in the following way:
+# 1) Press button for > 4 seconds and then release, to enter setup mode.
+# 2) Press button again to start closing the blind.
+# 3) Once the position you want as 100% closed (fully closed) is reached, press the button. 
+#    The blind will instantly start to open again (actually resets the stepper position to 0)
+# 4) Once the position you want as 100% open (fully open) is reached, press the button.
+# 5) Done.
+# The button loops through states as: open/stop/close/stop/open....... once configured.
+# Repeat from step 1 if you need to reconfigure in the future.
+
+# Setup option 3
+#---------------
+# 1) Turn on the 'Activate Setup' Switch to enter setup mode.
+# 2) Press Action button to start the blind closing.
+# 3) Press Action button again when closed and blind starts to open. (actually resets the stepper position to 0)
+# 4) Press Action button again when blind is fully open.
+# 5) Done.
+
+# Add to your frontend of choice.
+# Home Assistant using the ESPHome API integration or MQTT.
+# HomeKit using Homebridge and mqttthing or via Home Assistant's HomeKit integration.
+# And more...
+
+# What has been changed added?!
+# Added some extra sensors that report back to Home Assistant since they are availiable for free (uptime / reset button / wifi signal and so on)
+# Added support for stopping while moving up and down and start moving in the reverse direction using just one button
+# Added ability to choose wether ESP should report back to Home Assistant continuously or only when it has reached the set position (combined the functionallity of RoadkillUK's two seperate scripts)
+# Removed 'Silent Drive Mode' option, since the stepper speed can now be easily adjusted at runtime
+# Added ability to "adjust" stepper speed, perfect for automations that run late at night when more quiet operation is preferred over speed. (for a 28byj-48 5v stepper motor a value of 600-700 steps/s works well)
+# Added visual cue, the onboard LED of the Wemos D1 mini lights up (blue) to indicate when in setup mode, might need "allow_other_uses: true" for older designs
+# Rearranged a whole lot to make it easier to change needed parameters
+
+# Pretty much everything is customized in the "substitutions"-section below.
+# If not using a "secrets"-file (which I recommend) you also have to change:
+# !secret ota_password
+# !secret wifi_ssid
+# !secret wifi_password
+# !secret api_password
+# !secret ap_fallback_wifi_password
+
+##########################################################
+##########################################################
+# CONTROL USING MQTT TOPICS
+##########################################################
+##########################################################
+# The topics change according to your [hostname] defined
+# under the substitutions section below. Example below
+# is with hostname set to "rullgardin01"
+# MQTT needs to be activated and configured below
+#
+# For current position, subscribe to the following topic:
+# rullgardin01/cover/rullgardin01_roller/position/state
+#
+# To set position, publish to the following topic: (0-100, 0=close, 100=open)
+# rullgardin01/cover/rullgardin01_roller/position/command
+#
+# To stop, closing or opening, publish the current position to the following topic:
+# rullgardin01/cover/rullgardin01_roller/position/command
+#
+# To set "Continuous feedback switch", (ON/OFF) publish to the following topic:
+# rullgardin01/switch/rullgardin01_continuous_feedback/command
+# rullgardin01/switch/rullgardin01_continuous_feedback/command
+#
+# To Reboot ESP, publish (ON) to the following topic:
+# rullgardin01/switch/rullgardin01_restart/command
+#
+##########################################################
+##########################################################
+# CONTROL USING POST TO REST API
+##########################################################
+##########################################################
+# The calls change according to your [hostname] defined
+# under the substitutions section below. Example below
+# is with hostname set to "rullgardin01".
+# Works with IP instead of .local if you don't use mDNS/Multicast
+#
+# Using POST you can control it using the following URL's
+# Open:
+# http://rullgardin01.local/cover/rullgardin01_roller/open
+#
+# Close:
+# http://rullgardin01.local/cover/rullgardin01_roller/close
+#
+# Stop current operation (while opening or closing):
+# http://rullgardin01.local/cover/rullgardin01_roller/stop
+#
+# Set position:
+#   fully closed:
+#   http://rullgardin01.local/cover/rullgardin01_roller/set?position=0.0
+#   fully open:
+#   http://rullgardin01.local/cover/rullgardin01_roller/set?position=1.0
+#   halfway open/closed:
+#   http://rullgardin01.local/cover/rullgardin01_roller/set?position=0.5
+#   And so on...
+
+# Wemos D1 mini pin/GPIO layout
+# D0 = GPIO16
+# D1 = GPIO5
+# D2 = GPIO4
+# D3 = GPIO0
+# D4 = GPIO2 (internal LED, don't use or add "allow_other_uses: true" might work)
+# D5 = GPIO14
+# D6 = GPIO12
+# D7 = GPIO13
+# D8 = GPIO15
+# TX = GPIO1
+# RX = GPIO3
+# A0 = ADC0
+
+## Substitutions
+substitutions:
+  subHostname: 'rullgardin00' # hostname/devicename/esphome sensors (keep lcase)
+  subFriendlyName: 'dev switch' # More easily identify you roller
+  coverIP: '192.168.0.22' # Static IP
+  coverGateway: '192.168.0.1'
+  coverSubnet: '255.255.255.0'
+  speed: '700' # Default value, as an example, steps/s (speed) of the motor set to a value between 600-700 is usually ok for operating a "fridans" of 140 cm in width...
+  speedSteps: '50' # With what value should the step/s (speed) increase/decrease when configuring.
+  minSpeed: '100' # What value could be set as the minimum step/s (speed).
+  maxSpeed: '1000' # What value could be set as the maximum step/s (speed).
+  ## specify your mqtt-broker ip, uncomment to use and don't forget to uncomment the "MQTT:" section below as well
+  #mqttBrokerIP: '192.168.0.211'
+  delayBetweenUpdates: 500 ms # Milliseconds between updates being pushed to Home Assistant ESPHome API
+  msToEnterSetup: 3000 ms # Milliseconds action button has do be held before entering setup mode (default 3000ms / 3 Seconds).
+  myStepper: my_stepper # Name of the stepper motor (leave as is) everythings breaks if you change.
+
+  ## Uncomment pinSLP, pinSTP and pinDIR for the microcontroller you are using
+  ## If you have conflicts between pins this might help: "allow_other_uses: true"
+
+# ****** New PCB ****** use below and uncomment "Legacy PCB"-section
+  ## Wemos d1 mini
+  #pinPIR: D7 # PIR (Passive IR sensor) pin
+  #pinIRSend: D5 # Playback IR signals from MQTT topic
+  pinButton: GPIO1 #TX # physical button to controll the roller blind (up/stop/down/stop/up.......) (hold for +5 seconds to enter setup mode/press once to start closing, press again at maximum-/bottom position, lastly press at minimum-/top position)
+  pinReedSwitch: GPIO12 #D6 # Used for window open/closed, a reed(magnetic) sensor
+  #pinXtra: # Might be used for something of your choice
+  pinDIR: GPIO0  # DIRECTION > A4988
+  pinSTP: GPIO4 # STEP > A4988
+  pinSLP: GPIO5 # SLEEP & RESET > A4988
+  pinDIRReversed: 'false' # Change to true if roller blind goes up instead of down and vice versa (reverse direction) this can not be changed at runtime
+  pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
+
+# ****** Legacy PCB ****** use below and uncomment "New PCB"-section (be sure to also uncomment "allow_other_uses: true" at two locations below)
+#  pinButton: GPIO1 #TX # physical button to controll the roller blind (up/stop/down/stop/up.......) (hold for +5 seconds to enter setup mode/press once to start closing, press again at maximum-/bottom position, lastly press at minimum-/top position)
+#  pinReedSwitch: GPIO12 #D6 # Used for window open/closed, a reed(magnetic) sensor
+#  #pinXtra: # Might be used for something of your choice
+#  pinDIR: GPIO2  # DIRECTION > A4988
+#  pinSTP: GPIO0 # STEP > A4988
+#  pinSLP: GPIO4 # SLEEP & RESET > A4988
+#  pinDIRReversed: 'false' # Change to true if roller blind goes up instead of down and vice versa (reverse direction) this can not be changed at runtime
+#  pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
+
+## MQTT
+## Uncomment below if you want to control it using MQTT and uncomment "api:"-section  for HA ESPHome API above
+#mqtt:
+#  broker: $mqttBrokerIP
+#  discovery: True
+#  username:
+#  password:
+#  on_message:
+#    topic: $subHostname/ir/send
+#    then:
+#    - remote_transmitter.transmit_raw:
+#        carrier_frequency: 38kHz
+#        code: !lambda |-
+#          std::string txstr = x;
+#          std::vector<int> txv;
+#          char * token;
+#          char seps[] = ",";
+#          token = strtok (&txstr[0],seps);
+#          while (token != NULL)
+#          {
+#            txv.push_back( atoi(token) );
+#            token = strtok (NULL, seps);
+#          }
+#          return txv;
+
+
+## Enable Home Assistant ESPHome API
+## Comment out this section if you are not using HA ESPHome API and instead use MQTT or if you use them as standalone units controlled via the "action" button. (standalone means you comment out both MQTT and API)
+api:
+  encryption:
+    key: !secret api_key
+  reboot_timeout: 120s
+
+# No changes needed below this line ##################################################################################################
+# No changes needed below this line ##################################################################################################
+# No changes needed below this line ##################################################################################################
+# No changes needed below this line ##################################################################################################
+
+## Board model
+esp8266:
+  board: d1_mini
+  restore_from_flash: true
+
+## ESPHome
+esphome:
+  name: '${subHostname}'
+  friendly_name: '${subHostname} (${subFriendlyName})'
+  on_boot:
+    - priority: -200.0
+      then:
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Started'
+        - stepper.report_position: # Set stepper to global variable
+            id: ${myStepper}
+            position: !lambda return id(${myStepper}_global);
+        - stepper.set_target: # Set stepper to global variable
+            id: ${myStepper}
+            target: !lambda return id(${myStepper}_global);
+        - if: # If blind is Closed
+            condition:
+              - lambda: 'return id(${myStepper}_global) == 0;'
+            then: # Publish state etc.
+              - cover.template.publish:
+                  id: blinded
+                  state: CLOSED
+              - globals.set:
+                  id: last_action
+                  value: '2'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: 'Closed'
+        - if: # If blind is Open
+            condition:
+              - lambda: 'return id(${myStepper}_global) == id(endstop);'
+            then: # Publish state etc.
+              - cover.template.publish:
+                  id: blinded
+                  state: OPEN
+                  current_operation: IDLE
+              - globals.set:
+                  id: last_action
+                  value: '0'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: 'Open'
+        - if: # If blind is Neither
+            condition:
+              - lambda: 'return (id(${myStepper}_global) != 0) && (id(${myStepper}_global) != id(endstop));'
+            then: #  # Publish state etc.
+              - cover.template.publish:
+                  id: blinded
+                  position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+                  current_operation: IDLE
+              - globals.set:
+                  id: last_action
+                  value: '0'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: !lambda |-
+                    int pos = round(float(float(id(${myStepper}).current_position) / float(id(endstop))) * 100);
+                    return (
+                      ("Open: ") +
+                      (pos ? String(pos) + "%" : "")
+                    ).c_str();
+
+## WIFI
+wifi:
+  power_save_mode: HIGH
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  use_address: ${coverIP}
+  manual_ip:
+    static_ip: ${coverIP}
+    gateway: ${coverGateway}
+    subnet: ${coverSubnet}
+  ## Enable fallback hotspot (captive portal) in case wifi connection fails...
+  ap:
+    ssid: '${subHostname} Hotspot'
+    password: !secret ap_fallback_wifi_password
+
+## Webserver 
+web_server:
+  port: 80
+
+## Enable logging
+logger:
+#  level: ERROR
+#  level: NONE
+#  baud_rate: 0
+#  level: VERBOSE
+
+## Captive portal
+captive_portal:
+
+## OTA
+ota:
+  platform: esphome
+  password: !secret ota_password
+
+## Sync time with Home Assistant.
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+## Send IR codes (IR-blaster)
+#remote_transmitter:
+#  pin: 
+#    number: $pinIRSend
+#  carrier_duty_percent: 50%
+
+## Text sensors with general information.
+text_sensor:
+  ## Expose ESPHome version as sensor.
+  - platform: version
+    name: 'ESPHome Version'
+  ## Expose WiFi information as sensors.
+  - platform: wifi_info
+    ip_address:
+      name: 'IP'
+      icon: 'mdi:ip-network-outline'
+    ssid:
+      name: 'SSID'
+      icon: 'mdi:access-point'
+    bssid:
+      name: 'BSSID'
+      icon: 'mdi:access-point'
+    mac_address:
+      name: 'MAC'
+      icon: 'mdi:expansion-card-variant'
+  - platform: template
+    name: 'Friendly Name'
+    icon: 'mdi:heart-outline'
+    lambda: |-
+      return {"${subFriendlyName}"};
+  - platform: template
+    name: 'Last Action'
+    update_interval: never
+    id: current_status
+    icon: 'mdi:chart-box-outline'
+  - platform: template
+    name: 'Setup Position'
+    id: setup_position
+    icon: 'mdi:null'
+  - platform: template
+    name: 'Uptime HR'
+    id: uptime_human
+    icon: 'mdi:timer-outline'
+  - platform: template
+    name: 'Reversed Direction'
+    id: stepper_operation
+    icon: 'mdi:swap-vertical-circle-outline'
+    lambda: |-
+      return {"${pinDIRReversed}"};
+  - platform: template
+    name: 'Endstop position'
+    id: endstop_position
+    icon: 'mdi:vector-circle-variant'
+    lambda: |-
+      return {String(id(endstop)).c_str()};
+
+## Buttons
+button:
+  ## Button to restart the device
+  - platform: restart
+    name: 'Restart'
+    icon: 'mdi:restart'
+  - platform: safe_mode
+    name: 'Restart (Safe Mode)'
+    icon: 'mdi:restart-alert'
+  - platform: template
+    name: 'Action Button' # Button to replicate the Physical Button once Settings Mode has been entered
+    icon: 'mdi:gesture-tap-button'
+    on_press:
+      - if: # If settings variable is on
+          condition:
+            - lambda: 'return id(settingsmode) != 0;'
+          then: # Enter Setting Mode
+            - script.execute: setupscript
+
+      - if: # If fintune variable is on
+          condition:
+            - lambda: 'return id(finetunemode) != 0;'
+          then: # Enter Fine Tune Mode
+            - script.execute: finetunescript
+
+  - platform: template
+    name: 'FT Up'
+    icon: 'mdi:arrow-up-bold-hexagon-outline'
+    on_press:
+      - if: # Check if Fine Tune Mode is Activated
+          condition:
+            - lambda: |-
+                if ( id(finetunemode) != 0 ) {
+                  return true;
+                }
+                return false;
+          then:
+            # If Fine Tune Mode is Activated Check if at Top Position
+            - if: # Adjusting Top Position Up
+                condition:
+                  - lambda: |-
+                      if ( id(finetunemode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                        return true;
+                      }
+                      return false;
+                then:
+                  - if:
+                      condition:
+                        - lambda: |-
+                            if ( id(finetunemode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                            return true;
+                            }
+                            return false;
+                      then:
+                        - stepper.set_target: # Set Stepper position
+                            id: ${myStepper}
+                            target: !lambda 'return id(endstop) + id(finetunestepsvalue);'
+                        - globals.set: # Set Global stepper position
+                            id: ${myStepper}_global
+                            value: !lambda 'return id(endstop) + id(finetunestepsvalue);'
+                        - globals.set: # Set Endstop Variable
+                            id: endstop
+                            value: !lambda 'return id(endstop) + id(finetunestepsvalue);'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Fine Tune: Top Position Adjusted Upwards'
+
+            # If Fine Tune Mode is Activated Check if at Bottom Position
+            - if: # Adjusting Bottom Position Up
+                condition:
+                  - lambda: |-
+                      if ( id(finetunemode) == 3 && id(${myStepper}).current_position == 0 ) {
+                      return true;
+                      }
+                      return false;
+                then:
+                  - if:
+                      condition:
+                        - lambda: 'return (id(endstop) - id(finetunestepsvalue) > 0);'
+                      then:
+                        - stepper.set_target: # Set Stepper position
+                            id: ${myStepper}
+                            target: !lambda 'return (id(finetunestepsvalue)*-1);'
+                        - stepper.report_position: # Reset Stepper position to 0
+                             id: ${myStepper}
+                             position: !lambda |-
+                               return (id($myStepper).current_position - id(finetunestepsvalue));
+                        - stepper.set_target: # Reset Stepper position to 0
+                            id: ${myStepper}
+                            target: '0'
+                        - globals.set: # Set Global stepper position
+                            id: ${myStepper}_global
+                            value: !lambda 'return 0;'
+                        - globals.set: # Set Endstop Variable
+                            id: endstop
+                            value: !lambda 'return id(endstop) - id(finetunestepsvalue);'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Fine Tune: Bottom Position Adjusted Upwards'
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return String(id(endstop)).c_str();  
+
+  - platform: template
+    name: 'FT Down'
+    icon: 'mdi:arrow-down-bold-hexagon-outline'
+    on_press:
+      - if: # Check if Fine Tune Mode is Activated
+          condition:
+            - lambda: |-
+                if ( id(finetunemode) != 0 ) {
+                  return true;
+                }
+                return false;
+          then:
+            # If Fine Tune Mode is Activated Check if at Top Position
+            - if: # Adjusting Top Position Down
+                condition:
+                  - lambda: |-
+                      if ( id(finetunemode) == 2 ) {
+                        return true;
+                      }
+                      return false;
+                then:
+                  - if:
+                      condition:
+                        - lambda: 'return (id(endstop) - id(finetunestepsvalue) > 0);'
+                      then:
+                        - stepper.set_target: # Set Stepper position
+                            id: ${myStepper}
+                            target: !lambda 'return id(endstop) - id(finetunestepsvalue);'
+                        - globals.set: # Set Global stepper position
+                            id: ${myStepper}_global
+                            value: !lambda 'return id(endstop) - id(finetunestepsvalue);'
+                        - globals.set: # Set Endstop Variable
+                            id: endstop
+                            value: !lambda 'return id(endstop) - id(finetunestepsvalue);'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Fine Tune: Top Position Adjusted Downwards'
+                        - text_sensor.template.publish:
+                            id: endstop_position
+                            state: !lambda 'return String(id(endstop)).c_str();'
+                      else:
+                        - stepper.set_target: # Set Stepper position
+                            id: ${myStepper}
+                            target: !lambda 'return 0;'
+                        - globals.set: # Set Global stepper position
+                            id: ${myStepper}_global
+                            value: !lambda 'return 0;'
+                        - globals.set: # Set Endstop Variable
+                            id: endstop
+                            value: !lambda 'return 0;'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Fine Tune: Top Position cant go lower'
+                        - text_sensor.template.publish:
+                            id: endstop_position
+                            state: !lambda 'return String(id(endstop)).c_str();'
+            # If Fine Tune Mode is Activated Check if at Bottom Position
+            - if: # Adjusting Bottom Position Down
+                condition:
+                  - lambda: |-
+                      if ( id(finetunemode) == 3 && id(${myStepper}).current_position == 0 ) {
+                      return true;
+                      }
+                      return false;
+                then:
+                  - if:
+                      condition:
+                        - lambda: 'return ((id(endstop) - id(finetunestepsvalue)) > 0);'
+                      then:
+                        - stepper.set_target: # Set Stepper position
+                            id: ${myStepper}
+                            target: !lambda 'return (id(finetunestepsvalue));'
+                        - stepper.report_position: # Reset Stepper position to 0
+                            id: ${myStepper}
+                            position: !lambda |-
+                              return (id($myStepper).current_position + id(finetunestepsvalue));
+                        - stepper.set_target: # Reset Stepper position to 0
+                            id: ${myStepper}
+                            target: '0'
+                        - globals.set: # Set Global stepper position
+                            id: ${myStepper}_global
+                            value: !lambda 'return 0;'
+                        - globals.set: # Set Endstop Variable
+                            id: endstop
+                            value: !lambda 'return (id(endstop) + id(finetunestepsvalue));'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Fine Tune: Bottom Position Adjusted Downwards'
+                        - text_sensor.template.publish:
+                            id: endstop_position
+                            state: !lambda 'return String(id(endstop)).c_str();'
+
+## Sensors with general information.
+sensor:
+  ## Uptime sensor.
+  - platform: uptime
+    name: 'Uptime'
+    id: 'upptime'
+    icon: 'mdi:timer-outline'
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(upptime).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? String(days) + "d " : "") +
+                (hours ? String(hours) + "h " : "") +
+                (minutes ? String(minutes) + "m " : "") +
+                (String(seconds) + "s")
+              ).c_str();
+  ## WiFi Signal sensor.
+  - platform: wifi_signal
+    name: 'WiFi Signal'
+    update_interval: 120s
+    icon: 'mdi:wifi-strength-3'
+
+## Binary sensors
+binary_sensor:
+#  - platform: gpio
+#    pin: 
+#      number: $pinPIR
+#    name: '${subHostname} motion'
+#    device_class: motion
+  - platform: gpio
+    pin:
+      number: ${pinButton} # Connect Button to your desired pin and GND
+      mode: INPUT_PULLUP
+      inverted: true # If using a touch sensor instead of a "physical" button set this to false, else set it to true
+    name: 'Action Button'
+    internal: true
+    on_click:
+      - min_length: 50ms
+        max_length: 500ms
+        then: # Short press to OPEN/CLOSE blinds and also for setting up
+          - if: # If settings variable is on
+              condition:
+                - lambda: 'return id(settingsmode) != 0;'
+              then: # Enter Setting Mode
+                - script.execute: setupscript
+              else:
+                - if: # If blind is stopped while opening #0=STOPPED WHILE OPENING
+                    condition:
+                      - lambda: 'return id(last_action) == 0;'
+                    then:
+                      - text_sensor.template.publish:
+                          id: current_status
+                          state: 'Closing...'
+                      - globals.set:
+                          id: last_action
+                          value: '1'
+                      - lambda: 'auto call = id(blinded).make_call().set_command_close(); call.perform();'
+                    else:
+                      - if: # If blind is moving down #1=MOVING DOWN
+                          condition:
+                            - lambda: 'return id(last_action) == 1;'
+                          then:
+                            - text_sensor.template.publish:
+                                id: current_status
+                                state: !lambda |-
+                                  int pos = round(float(float(id($myStepper).current_position) / float(id(endstop))) * 100);
+                                  return (
+                                    (pos ? String(pos) + "% open" : "") +
+                                    (" / Stopped while closing")
+                                  ).c_str();
+                            - globals.set:
+                                id: last_action
+                                value: '2'
+                            - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
+                          else:
+                            - if: # If blind is stopped while closing #2=STOPPED WHILE CLOSING
+                                condition:
+                                  - lambda: 'return id(last_action) == 2;'
+                                then:
+                                  - text_sensor.template.publish:
+                                      id: current_status
+                                      state: 'Opening...'
+                                  - globals.set:
+                                      id: last_action
+                                      value: '3'
+                                  - lambda: 'auto call = id(blinded).make_call().set_command_open(); call.perform();'
+                                else:
+                                  - if: # If blind is moving up #3=MOVING UP
+                                      condition:
+                                        - lambda: 'return id(last_action) == 3;'
+                                      then:
+                                        - text_sensor.template.publish:
+                                            id: current_status
+                                            state: !lambda |-
+                                              int pos = round(float(float(id(${myStepper}).current_position) / float(id(endstop))) * 100);
+                                              return (
+                                                (pos ? String(pos) + "% open" : "") +
+                                                (" / Stopped while opening")
+                                              ).c_str();
+                                        - globals.set:
+                                            id: last_action
+                                            value: '0'
+                                        - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
+      - min_length: '${msToEnterSetup}' # Tinme it takes to activate setup
+        max_length: 10000ms
+        then: # Long press to Enter Setting Mode (4-10 Sec press)
+          - logger.log: 'Entered Settings Mode'
+          - switch.turn_on:
+              id: blue_led
+          - globals.set:
+              id: settingsmode
+              value: '1'
+          - text_sensor.template.publish:
+              id: current_status
+              state: 'Setup activated, click to start'
+
+  - platform: gpio
+    pin:
+      number: $pinReedSwitch
+      mode: INPUT_PULLUP
+    name: 'Window'
+    filters:
+      - delayed_on: 250ms
+    device_class: window
+    
+## Stepper
+stepper:
+  - platform: a4988
+    id: $myStepper
+    dir_pin:
+      number: ${pinDIR}
+      #Legacy uncomment "allow_other_uses: true" if using old pcb
+      #allow_other_uses: true
+      inverted: ${pinDIRReversed}
+    step_pin:
+      number: ${pinSTP}
+      inverted: false
+    sleep_pin:
+      number: ${pinSLP}
+      inverted: false
+    max_speed: '${speed}' # Speed of the motor
+    acceleration: inf
+    deceleration: inf
+
+## Globals
+globals:
+  - id: ${myStepper}_global # Integer for storing the stepper position in case of reboot
+    type: int
+    restore_value: true
+    initial_value: '0'
+
+  - id: openclosed # Boolean to store OPEN/CLOSED state
+    type: bool
+    restore_value: true
+    initial_value: '0'
+
+  - id: endstop # Variable for storing ENDSTOP (how far to move stepper)
+    type: int
+    restore_value: true
+    initial_value: '2048'
+
+  - id: settingsmode # Integer for Setup Mode
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: feedback # Boolean for continuous feedback
+    type: bool
+    restore_value: no
+    initial_value: '1' # Default value for continuous feedback: Set to '1' and the cover reports back current position continuously / Set to '0' and the cover updates in the beginning and end of the requested operation
+
+  - id: last_action # Integer for last action
+    type: int
+    restore_value: no
+#    initial_value: '0'
+
+  - id: finetunemode # Integer for Fine Tune Mode
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: finetunestepsvalue # Variable for storing ENDSTOP (how far to move stepper)
+    type: int
+    restore_value: no
+    initial_value: '512'
+
+## 0=STOPPED WHILE OPENING
+## 1=CLOSING / MOVING DOWN
+## 2=STOPPED WHILE CLOSING
+## 3=OPENING / MOVING UP
+
+number:
+  - platform: template
+    name: 'Speed'
+    id: rollerspeed
+    icon: 'mdi:speedometer'
+    max_value: '${maxSpeed}'
+    min_value: '${minSpeed}'
+    step: '${speedSteps}'
+    mode: slider
+    initial_value: '${speed}'
+    optimistic: true
+    on_value:
+      - stepper.set_speed:
+          id: '${myStepper}'
+          speed: !lambda "return x;"
+      - text_sensor.template.publish:
+          id: current_status
+          state: 'Set new steps/s for stepper motor'
+
+  - platform: template
+    name: 'Fine tune step amount'
+    id: finetunesteps
+    icon: 'mdi:counter'
+    max_value: '2048' # 2048 steps is one full revolution of the stepper
+    min_value: '64'
+    step: '64'
+    mode: slider
+    initial_value: '512'
+    optimistic: true
+    on_value:
+      - globals.set:
+            id: finetunestepsvalue
+            value: !lambda "return x;"
+
+## Switch
+switch:
+  - platform: template
+    name: 'Activate Setup' # Switch to enter Setup Mode
+    id: setupswitch
+    icon: 'mdi:cog-outline'
+    lambda: |-
+      if (id(settingsmode) != 0) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      then:
+        - logger.log: 'Entered Settings Mode'
+        - globals.set:
+            id: settingsmode
+            value: '1'
+        - text_sensor.template.publish:
+            id: setup_position
+            state: 'S0'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Setup has been activated, click [Action Button] to set and store the closed and open positions.'
+        - switch.turn_on:
+            id: blue_led
+    turn_off_action:
+      then:
+        - logger.log: 'Exited Settings Mode'
+        - globals.set:
+            id: settingsmode
+            value: '0'
+        - text_sensor.template.publish:
+                id: setup_position
+                state: ''
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Setup cancelled'
+        - switch.turn_off:
+            id: blue_led
+
+  - platform: template
+    name: 'Activate Fine Tune Mode' # Switch to enter Fine Tune Mode
+    id: finetuneswitch
+    icon: 'mdi:tune-vertical-variant'
+    lambda: |-
+      if (id(finetunemode) != 0) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      then:
+        - logger.log: 'Entered Fine Tune Mode'
+        - globals.set:
+            id: finetunemode
+            value: '1'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Fine Tune has been activated, click [Action Button] to move to and then adjust the open postion.'
+        - switch.turn_on:
+            id: blue_led
+    turn_off_action:
+      then:
+        - logger.log: 'Exited Fine Tune Mode'
+        - globals.set:
+            id: finetunemode
+            value: '0'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Fine Tune Mode cancelled'
+        - switch.turn_off:
+            id: blue_led
+
+  - platform: template
+    name: 'Continuous Feedback' # Switch to activate Continuous Feedback
+    id: feedbackswitch
+    icon: 'mdi:sync'
+    lambda: |-
+      if (id(feedback) != 0) {
+        return true;
+      } else {
+        return false;
+      }
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - logger.log: 'Activated Continuous Feedback'
+      - globals.set:
+          id: feedback
+          value: '1'
+      - text_sensor.template.publish:
+          id: current_status
+          state: 'Activated Continuous Feedback'
+    turn_off_action:
+      - logger.log: 'Disabled Continuous Feedback'
+      - globals.set:
+          id: feedback
+          value: '0'
+      - text_sensor.template.publish:
+          id: current_status
+          state: 'Disabled Continuous Feedback'
+
+  - platform: gpio
+    name: 'Blue LED'
+    internal: true
+    id: blue_led
+    icon: 'mdi:alarm-light'
+    pin:
+      number: ${pinLED}
+      #Legacy uncomment "allow_other_uses: true" if using old pcb
+      #allow_other_uses: true
+      mode: OUTPUT
+    inverted: true
+    restore_mode: ALWAYS_OFF
+
+## Cover
+cover:
+  - platform: template
+    name: 'Roller'
+    id: blinded
+    open_action:
+      then:
+        - logger.log: 'Opening'
+        - stepper.set_target: # Send stepper to endstop
+            id: ${myStepper}
+            target: !lambda return id(endstop);
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Opening'
+        - if: # If continuous feedback switch is on
+            condition:
+              - lambda: 'return id(feedback) != 0;'
+            then: # With continuous feedback
+              - while:
+                  condition:
+                    lambda: 'return id(${myStepper}).current_position != id(endstop);'
+                  then:
+                    - cover.template.publish:
+                        id: blinded
+                        position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+                        current_operation: OPENING
+                    - delay: ${delayBetweenUpdates}
+            else: # Without contiunous feedback
+              - cover.template.publish:
+                  id: blinded
+                  position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+                  current_operation: OPENING
+              - wait_until: # Wait until endstop reached
+                  lambda: 'return (id(${myStepper}).current_position == id(endstop));'
+        - globals.set: # Set global to current position
+            id: ${myStepper}_global
+            value: !lambda return id($myStepper).current_position;
+        - globals.set: # Set toggle to OPEN (No need for 'optimistic mode')
+            id: openclosed
+            value: '1'
+        - cover.template.publish:
+            id: blinded
+            state: OPEN
+            current_operation: IDLE
+        - globals.set:
+            id: last_action
+            value: '0'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Open'
+    close_action:
+      then:
+        - logger.log: 'Closing'
+        - stepper.set_target: # Send stepper to 0
+            id: ${myStepper}
+            target: '0'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Closing'
+        - if: # If continuous feedback switch is on
+            condition:
+              - lambda: 'return id(feedback) != 0;'
+            then: # With continuous feedback
+              - while:
+                  condition:
+                    lambda: 'return id(${myStepper}).current_position != 0;'
+                  then:
+                    - cover.template.publish:
+                        id: blinded
+                        position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+                        current_operation: CLOSING
+                    - delay: ${delayBetweenUpdates}
+            else: # Without continuous feedback
+              - cover.template.publish:
+                  id: blinded
+                  position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+                  current_operation: CLOSING
+              - wait_until: # Wait until endstop reached
+                  lambda: 'return id(${myStepper}).current_position == 0;'
+        - globals.set: # Set global to current position
+            id: ${myStepper}_global
+            value: !lambda return id($myStepper).current_position;
+        - globals.set: # Set toggle to CLOSED (No need for 'optimistic mode')
+            id: openclosed
+            value: '0'
+        - cover.template.publish:
+            id: blinded
+            state: CLOSED
+            current_operation: IDLE
+        - globals.set:
+            id: last_action
+            value: '2'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Closed'
+    position_action:
+      then:
+        - stepper.set_target:
+            id: ${myStepper}
+            target: !lambda return int(id(endstop) * pos);
+        - text_sensor.template.publish:
+            id: current_status
+            state: !lambda |-
+                      return (
+                        (pos ? "Moving to set position: " + String(int(pos * 100)) + "%" : "")
+                      ).c_str();
+        - if: # If continuous feedback switch is on
+            condition:
+              - lambda: 'return id(feedback) != 0;'
+            then: # With continuous feedback
+              - while:
+                  condition:
+                    lambda: 'return id(${myStepper}).current_position != int(id(endstop) * pos);'
+                  then:
+                    - cover.template.publish:
+                        id: blinded
+                        position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+                    - delay: ${delayBetweenUpdates}
+            else: # Without continuous feedback
+              - wait_until: # Wait until endstop reached
+                  lambda: 'return id(${myStepper}).current_position == (int(id(endstop) * pos));'
+        - globals.set: # Set global to current position
+            id: ${myStepper}_global
+            value: !lambda return id(${myStepper}).current_position;
+        - cover.template.publish:
+            id: blinded
+            position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+            current_operation: IDLE
+        - text_sensor.template.publish:
+            id: current_status
+            state: !lambda |-
+                      return (
+                        (pos ? "Reached set position: " + String(int(pos * 100)) + "%" : "")
+                      ).c_str();
+    stop_action:
+      then:
+        - stepper.set_target:
+            id: ${myStepper}
+            target: !lambda return id(${myStepper}).current_position;
+        - globals.set: # Set global to current position
+            id: ${myStepper}_global
+            value: !lambda return id(${myStepper}).current_position;
+        - cover.template.publish:
+            id: blinded
+            position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+            current_operation: IDLE
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Stopped'
+    has_position: true
+    device_class: blind
+
+## Scripts
+script:
+  - id: setupscript
+    then:
+      - if:
+          condition:
+            - lambda: 'return (id(settingsmode) == 3);'
+          then:
+            - logger.log: 'Pressed Action Button: Mode 3'
+            - stepper.set_target: # Set Stepper position
+                id: ${myStepper}
+                target: !lambda return id(${myStepper}).current_position;
+            - globals.set: # Set Endstop Variable
+                id: endstop
+                value: !lambda return id(${myStepper}).current_position;
+            - globals.set: # Set Global stepper position
+                id: ${myStepper}_global
+                value: !lambda return id(${myStepper}).current_position;
+            - globals.set: # Reset Setting Mode
+                id: settingsmode
+                value: '0'
+            - globals.set: # Set toggle to Open
+                id: openclosed
+                value: '1'
+            - cover.template.publish:
+                id: blinded
+                state: OPEN
+                current_operation: IDLE
+            - logger.log: 'Exited Setting Mode'
+            - text_sensor.template.publish:
+                id: setup_position
+                state: 'S3'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Setup complete, settings stored.'
+            - switch.turn_off:
+                id: blue_led
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return String(id(endstop)).c_str();
+      - if:
+          condition:
+            - lambda: 'return (id(settingsmode) == 2);'
+          then:
+            - logger.log: 'Pressed Action Button: Mode 2'
+            - stepper.report_position: # Reset Stepper position to 0
+                id: ${myStepper}
+                position: '0'
+            - stepper.set_target: # Reset Stepper position to 0
+                id: ${myStepper}
+                target: '0'
+            - globals.set: # Move stepper to 0 (doesn't move it's already there!)
+                id: ${myStepper}_global
+                value: '0'
+            - stepper.set_target: # Reset Stepper position to 72000
+                id: ${myStepper}
+                target: '720000'
+            - globals.set: # Advance setup to next mode
+                id: settingsmode
+                value: '3'
+            - text_sensor.template.publish:
+                id: setup_position
+                state: 'S2'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Step 2: Click [Action Button] when the wanted open position has been reached.'
+      - if:
+          condition:
+            - lambda: 'return (id(settingsmode) == 1);'
+          then:
+            - logger.log: 'Pressed Action Button: Mode 1'
+            - stepper.report_position: # Set Stepper position to 72000, makes it move to 0 (Closed)
+                id: ${myStepper}
+                position: '720000'
+            - globals.set: # Advance setup to next mode
+                id: settingsmode
+                value: '2'
+            - text_sensor.template.publish:
+                id: setup_position
+                state: 'S1'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Step 1: Click [Action Button] when the wanted closed position has been reached.'
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return String(id(endstop)).c_str();
+
+  - id: finetunescript
+    then:
+      - if:
+          condition:
+            - lambda: |-
+                if ( id(finetunemode) == 3 && id(${myStepper}).current_position == 0 ) {
+                return true;
+                }
+                return false;
+          then:
+            - globals.set: # Reset Fine Tune Mode
+                id: finetunemode
+                value: '0'
+            - logger.log: 'Exited Fine Tune Mode'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Fine Tune: Closed Position stored, Fine Tune finished.'
+            - switch.turn_off:
+                id: blue_led
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return String(id(endstop)).c_str();
+      - if:
+          condition:
+            - lambda: |-
+                if ( id(finetunemode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                return true;
+                }
+                return false;
+          then:
+            - stepper.set_target: # Move to Closed Position
+                id: ${myStepper}
+                target: !lambda return 0;
+            - globals.set: # Advance Fine Tune to next mode
+                id: finetunemode
+                value: '3'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Fine Tune: Open Position stored, Moving to Closed Position'
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return String(id(endstop)).c_str();          
+      - if:
+          condition:
+            - lambda: 'return (id(finetunemode) == 1);'
+          then:
+            - stepper.set_target: # Move to Open Position
+                id: ${myStepper}
+                target: !lambda return id(endstop);
+            - logger.log: 'Fine Tune: Moving Roller Blind to Open Position'
+            - globals.set: # Advance Fine Tune to next mode
+                id: finetunemode
+                value: '2'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Fine Tune: When at Open Position, adjust using [FT Down] or [FT Up], advance with [Action Button]'
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return String(id(endstop)).c_str();
