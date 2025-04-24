@@ -397,27 +397,27 @@ button:
 
       - if: # If fintune variable is on
           condition:
-            - lambda: 'return id(finetunemode) != 0;'
-          then: # Enter Fine Tune Mode
-            - script.execute: finetunescript
+            - lambda: 'return id(tweakmode) != 0;'
+          then: # Enter Tweak Mode
+            - script.execute: tweakscript
 
   - platform: template
-    name: 'FT Up'
+    name: 'Tweak Up'
     icon: 'mdi:arrow-up-bold-hexagon-outline'
     on_press:
-      - if: # Check if Fine Tune Mode is Activated
+      - if: # Check if Tweak Mode is Activated
           condition:
             - lambda: |-
-                if ( id(finetunemode) != 0 ) {
+                if ( id(tweakmode) != 0 ) {
                   return true;
                 }
                 return false;
           then:
-            # If Fine Tune Mode is Activated Check if at Top Position
+            # If Tweak Mode is Activated Check if at Top Position
             - if: # Adjusting Top Position Up
                 condition:
                   - lambda: |-
-                      if ( id(finetunemode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                      if ( id(tweakmode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
                         return true;
                       }
                       return false;
@@ -425,44 +425,44 @@ button:
                   - if:
                       condition:
                         - lambda: |-
-                            if ( id(finetunemode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                            if ( id(tweakmode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
                             return true;
                             }
                             return false;
                       then:
                         - stepper.set_target: # Set Stepper position
                             id: ${myStepper}
-                            target: !lambda 'return id(endstop) + id(finetunestepsvalue);'
+                            target: !lambda 'return id(endstop) + id(tweakstepsvalue);'
                         - globals.set: # Set Global stepper position
                             id: ${myStepper}_global
-                            value: !lambda 'return id(endstop) + id(finetunestepsvalue);'
+                            value: !lambda 'return id(endstop) + id(tweakstepsvalue);'
                         - globals.set: # Set Endstop Variable
                             id: endstop
-                            value: !lambda 'return id(endstop) + id(finetunestepsvalue);'
+                            value: !lambda 'return id(endstop) + id(tweakstepsvalue);'
                         - text_sensor.template.publish:
                             id: current_status
-                            state: 'Fine Tune: Top Position Adjusted Upwards'
+                            state: 'Tweak: Top Position Adjusted Upwards'
 
-            # If Fine Tune Mode is Activated Check if at Bottom Position
+            # If Tweak Mode is Activated Check if at Bottom Position
             - if: # Adjusting Bottom Position Up
                 condition:
                   - lambda: |-
-                      if ( id(finetunemode) == 3 && id(${myStepper}).current_position == 0 ) {
+                      if ( id(tweakmode) == 3 && id(${myStepper}).current_position == 0 ) {
                       return true;
                       }
                       return false;
                 then:
                   - if:
                       condition:
-                        - lambda: 'return (id(endstop) - id(finetunestepsvalue) > 0);'
+                        - lambda: 'return (id(endstop) - id(tweakstepsvalue) > 0);'
                       then:
                         - stepper.set_target: # Set Stepper position
                             id: ${myStepper}
-                            target: !lambda 'return (id(finetunestepsvalue)*-1);'
+                            target: !lambda 'return (id(tweakstepsvalue)*-1);'
                         - stepper.report_position: # Reset Stepper position to 0
                              id: ${myStepper}
                              position: !lambda |-
-                               return (id($myStepper).current_position - id(finetunestepsvalue));
+                               return (id($myStepper).current_position - id(tweakstepsvalue));
                         - stepper.set_target: # Reset Stepper position to 0
                             id: ${myStepper}
                             target: '0'
@@ -471,52 +471,52 @@ button:
                             value: !lambda 'return 0;'
                         - globals.set: # Set Endstop Variable
                             id: endstop
-                            value: !lambda 'return id(endstop) - id(finetunestepsvalue);'
+                            value: !lambda 'return id(endstop) - id(tweakstepsvalue);'
                         - text_sensor.template.publish:
                             id: current_status
-                            state: 'Fine Tune: Bottom Position Adjusted Upwards'
+                            state: 'Tweak: Bottom Position Adjusted Upwards'
             - text_sensor.template.publish:
                 id: endstop_position
                 state: !lambda |-
                   return String(id(endstop)).c_str();  
 
   - platform: template
-    name: 'FT Down'
+    name: 'Tweak Down'
     icon: 'mdi:arrow-down-bold-hexagon-outline'
     on_press:
-      - if: # Check if Fine Tune Mode is Activated
+      - if: # Check if Tweak Mode is Activated
           condition:
             - lambda: |-
-                if ( id(finetunemode) != 0 ) {
+                if ( id(tweakmode) != 0 ) {
                   return true;
                 }
                 return false;
           then:
-            # If Fine Tune Mode is Activated Check if at Top Position
+            # If Tweak Mode is Activated Check if at Top Position
             - if: # Adjusting Top Position Down
                 condition:
                   - lambda: |-
-                      if ( id(finetunemode) == 2 ) {
+                      if ( id(tweakmode) == 2 ) {
                         return true;
                       }
                       return false;
                 then:
                   - if:
                       condition:
-                        - lambda: 'return (id(endstop) - id(finetunestepsvalue) > 0);'
+                        - lambda: 'return (id(endstop) - id(tweakstepsvalue) > 0);'
                       then:
                         - stepper.set_target: # Set Stepper position
                             id: ${myStepper}
-                            target: !lambda 'return id(endstop) - id(finetunestepsvalue);'
+                            target: !lambda 'return id(endstop) - id(tweakstepsvalue);'
                         - globals.set: # Set Global stepper position
                             id: ${myStepper}_global
-                            value: !lambda 'return id(endstop) - id(finetunestepsvalue);'
+                            value: !lambda 'return id(endstop) - id(tweakstepsvalue);'
                         - globals.set: # Set Endstop Variable
                             id: endstop
-                            value: !lambda 'return id(endstop) - id(finetunestepsvalue);'
+                            value: !lambda 'return id(endstop) - id(tweakstepsvalue);'
                         - text_sensor.template.publish:
                             id: current_status
-                            state: 'Fine Tune: Top Position Adjusted Downwards'
+                            state: 'Tweak: Top Position Adjusted Downwards'
                         - text_sensor.template.publish:
                             id: endstop_position
                             state: !lambda 'return String(id(endstop)).c_str();'
@@ -532,30 +532,30 @@ button:
                             value: !lambda 'return 0;'
                         - text_sensor.template.publish:
                             id: current_status
-                            state: 'Fine Tune: Top Position cant go lower'
+                            state: 'Tweak: Top Position cant go lower'
                         - text_sensor.template.publish:
                             id: endstop_position
                             state: !lambda 'return String(id(endstop)).c_str();'
-            # If Fine Tune Mode is Activated Check if at Bottom Position
+            # If Tweak Mode is Activated Check if at Bottom Position
             - if: # Adjusting Bottom Position Down
                 condition:
                   - lambda: |-
-                      if ( id(finetunemode) == 3 && id(${myStepper}).current_position == 0 ) {
+                      if ( id(tweakmode) == 3 && id(${myStepper}).current_position == 0 ) {
                       return true;
                       }
                       return false;
                 then:
                   - if:
                       condition:
-                        - lambda: 'return ((id(endstop) - id(finetunestepsvalue)) > 0);'
+                        - lambda: 'return ((id(endstop) - id(tweakstepsvalue)) > 0);'
                       then:
                         - stepper.set_target: # Set Stepper position
                             id: ${myStepper}
-                            target: !lambda 'return (id(finetunestepsvalue));'
+                            target: !lambda 'return (id(tweakstepsvalue));'
                         - stepper.report_position: # Reset Stepper position to 0
                             id: ${myStepper}
                             position: !lambda |-
-                              return (id($myStepper).current_position + id(finetunestepsvalue));
+                              return (id($myStepper).current_position + id(tweakstepsvalue));
                         - stepper.set_target: # Reset Stepper position to 0
                             id: ${myStepper}
                             target: '0'
@@ -564,10 +564,10 @@ button:
                             value: !lambda 'return 0;'
                         - globals.set: # Set Endstop Variable
                             id: endstop
-                            value: !lambda 'return (id(endstop) + id(finetunestepsvalue));'
+                            value: !lambda 'return (id(endstop) + id(tweakstepsvalue));'
                         - text_sensor.template.publish:
                             id: current_status
-                            state: 'Fine Tune: Bottom Position Adjusted Downwards'
+                            state: 'Tweak: Bottom Position Adjusted Downwards'
                         - text_sensor.template.publish:
                             id: endstop_position
                             state: !lambda 'return String(id(endstop)).c_str();'
@@ -757,15 +757,15 @@ globals:
     restore_value: no
 #    initial_value: '0'
 
-  - id: finetunemode # Integer for Fine Tune Mode
+  - id: tweakmode # Integer for Tweak Mode
     type: int
     restore_value: no
     initial_value: '0'
 
-  - id: finetunestepsvalue # Variable for storing ENDSTOP (how far to move stepper)
+  - id: tweakstepsvalue # Variable for storing how many steps to adjust endstop with in Tweak Mode
     type: int
     restore_value: no
-    initial_value: '512'
+    initial_value: '512' # Number of Steps to add to "enstop"//subtract from "endstop" / 2048=One Revolution, 1024=Half a Revolution, 512=1/4 Revolution and so on...
 
 ## 0=STOPPED WHILE OPENING
 ## 1=CLOSING / MOVING DOWN
@@ -792,8 +792,8 @@ number:
           state: 'Set new steps/s for stepper motor'
 
   - platform: template
-    name: 'Fine tune step amount'
-    id: finetunesteps
+    name: 'Tweak Step Amount'
+    id: tweaksteps
     icon: 'mdi:counter'
     max_value: '2048' # 2048 steps is one full revolution of the stepper
     min_value: '64'
@@ -803,7 +803,7 @@ number:
     optimistic: true
     on_value:
       - globals.set:
-            id: finetunestepsvalue
+            id: tweakstepsvalue
             value: !lambda "return x;"
 
 ## Switch
@@ -848,35 +848,35 @@ switch:
             id: blue_led
 
   - platform: template
-    name: 'Activate Fine Tune Mode' # Switch to enter Fine Tune Mode
-    id: finetuneswitch
+    name: 'Activate Tweak Mode' # Switch to enter Tweak Mode
+    id: tweakswitch
     icon: 'mdi:tune-vertical-variant'
     lambda: |-
-      if (id(finetunemode) != 0) {
+      if (id(tweakmode) != 0) {
         return true;
       } else {
         return false;
       }
     turn_on_action:
       then:
-        - logger.log: 'Entered Fine Tune Mode'
+        - logger.log: 'Entered Tweak Mode'
         - globals.set:
-            id: finetunemode
+            id: tweakmode
             value: '1'
         - text_sensor.template.publish:
             id: current_status
-            state: 'Fine Tune has been activated, click [Action Button] to move to and then adjust the open postion.'
+            state: 'Tweak Mode has been activated, click [Action Button] to move to and then adjust the open postion.'
         - switch.turn_on:
             id: blue_led
     turn_off_action:
       then:
-        - logger.log: 'Exited Fine Tune Mode'
+        - logger.log: 'Exited Tweak Mode'
         - globals.set:
-            id: finetunemode
+            id: tweakmode
             value: '0'
         - text_sensor.template.publish:
             id: current_status
-            state: 'Fine Tune Mode cancelled'
+            state: 'Tweak Mode cancelled'
         - switch.turn_off:
             id: blue_led
 
@@ -1131,7 +1131,7 @@ script:
             - stepper.set_target: # Reset Stepper position to 72000
                 id: ${myStepper}
                 target: '720000'
-            - globals.set: # Advance setup to next mode
+            - globals.set: # Advance to next step in Setup Mode
                 id: settingsmode
                 value: '3'
             - text_sensor.template.publish:
@@ -1148,7 +1148,7 @@ script:
             - stepper.report_position: # Set Stepper position to 72000, makes it move to 0 (Closed)
                 id: ${myStepper}
                 position: '720000'
-            - globals.set: # Advance setup to next mode
+            - globals.set: # Advance to next step in Setup Mode
                 id: settingsmode
                 value: '2'
             - text_sensor.template.publish:
@@ -1162,23 +1162,23 @@ script:
                 state: !lambda |-
                   return String(id(endstop)).c_str();
 
-  - id: finetunescript
+  - id: tweakscript
     then:
       - if:
           condition:
             - lambda: |-
-                if ( id(finetunemode) == 3 && id(${myStepper}).current_position == 0 ) {
+                if ( id(tweakmode) == 3 && id(${myStepper}).current_position == 0 ) {
                 return true;
                 }
                 return false;
           then:
-            - globals.set: # Reset Fine Tune Mode
-                id: finetunemode
+            - globals.set: # Reset Tweak Mode
+                id: tweakmode
                 value: '0'
-            - logger.log: 'Exited Fine Tune Mode'
+            - logger.log: 'Exited Tweak Mode'
             - text_sensor.template.publish:
                 id: current_status
-                state: 'Fine Tune: Closed Position stored, Fine Tune finished.'
+                state: 'Tweak: Closed Position stored, Tweaking finished.'
             - switch.turn_off:
                 id: blue_led
             - text_sensor.template.publish:
@@ -1188,7 +1188,7 @@ script:
       - if:
           condition:
             - lambda: |-
-                if ( id(finetunemode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                if ( id(tweakmode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
                 return true;
                 }
                 return false;
@@ -1196,30 +1196,30 @@ script:
             - stepper.set_target: # Move to Closed Position
                 id: ${myStepper}
                 target: !lambda return 0;
-            - globals.set: # Advance Fine Tune to next mode
-                id: finetunemode
+            - globals.set: # Advance to next step in Tweak Mode
+                id: tweakmode
                 value: '3'
             - text_sensor.template.publish:
                 id: current_status
-                state: 'Fine Tune: Open Position stored, Moving to Closed Position'
+                state: 'Tweak: Open Position stored, Moving to Closed Position'
             - text_sensor.template.publish:
                 id: endstop_position
                 state: !lambda |-
                   return String(id(endstop)).c_str();          
       - if:
           condition:
-            - lambda: 'return (id(finetunemode) == 1);'
+            - lambda: 'return (id(tweakmode) == 1);'
           then:
             - stepper.set_target: # Move to Open Position
                 id: ${myStepper}
                 target: !lambda return id(endstop);
-            - logger.log: 'Fine Tune: Moving Roller Blind to Open Position'
-            - globals.set: # Advance Fine Tune to next mode
-                id: finetunemode
+            - logger.log: 'Tweak: Moving Roller Blind to Open Position'
+            - globals.set: # Advance to next step in Tweak Mode
+                id: tweakmode
                 value: '2'
             - text_sensor.template.publish:
                 id: current_status
-                state: 'Fine Tune: When at Open Position, adjust using [FT Down] or [FT Up], advance with [Action Button]'
+                state: 'Tweak: When at Open Position, adjust using [Tweak Down] or [Tweak Up], advance with [Action Button]'
             - text_sensor.template.publish:
                 id: endstop_position
                 state: !lambda |-
