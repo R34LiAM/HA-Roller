@@ -3,6 +3,8 @@
 Motorized blinds extremely cheap (IKEA Fridans)
 
 ![Optional PCB](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/PCB%20V3.png?raw=true)
+![Soldered](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/PCB%20V3soldered.png?raw=true)
+
 
 Integrates with:
 
