@@ -6,7 +6,7 @@ all information is at: https://www.thingiverse.com/thing:4889111
 
 ![Optional PCB](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/PCB%20V3.png?raw=true)
 ![Soldered](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/PCB%20V3soldered.png?raw=true)
-![Home Assistant](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/PCB%20V3soldered.png?raw=true)
+![Home Assistant](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/HA.png?raw=true)
 
 
 Integrates with:
