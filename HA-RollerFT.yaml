@@ -2,7 +2,7 @@
 # Heavily inspried by PeterG: https://www.thingiverse.com/pgote/designs
 # And RoadkillUK: https://github.com/RoadkillUK/Motor-on-a-Roller-Blind-for-ESPHOME
 
-# Tested on ESPHome Device Builder 2025.3.4 but will probably work fine on later revisions
+# Last tested on ESPHome Device Builder 2025.3.3 but will probably work fine on later revisions.
 # 2025.4.0 Has issues, will hopefully be resolved in later revisions
 
 # All that needs to be changed before compiling and flashing is in the 'substitutions:' section below.
