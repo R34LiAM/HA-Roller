@@ -12,7 +12,7 @@ cards:
   - features:
       - type: light-brightness
     type: tile
-    entity: light.your_window_light_entity
+    entity: light.vardagsrum_stora_fonstret
     features_position: inline
     vertical: false
     name: Lampa
@@ -167,9 +167,14 @@ cards:
             type: custom:button-card
   - type: conditional
     conditions:
-      - condition: state
-        entity: switch.rullgardin00_activate_setup
-        state: "off"
+      - condition: and
+        conditions:
+          - condition: state
+            entity: switch.rullgardin00_activate_tweak_mode
+            state: "off"
+          - condition: state
+            entity: switch.rullgardin00_activate_setup
+            state: "off"
     card:
       type: tile
       entity: sensor.rullgardin00_last_action
@@ -182,18 +187,16 @@ cards:
         square: false
         columns: 1
         cards:
-          - type: tile
-            color: primary
-            entity: switch.rullgardin00_activate_setup
-            name: Activate Setup
-            hide_state: true
-            tap_action:
-              action: toggle
           - type: conditional
             conditions:
-              - condition: state
-                entity: switch.rullgardin00_activate_setup
-                state: "on"
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity: switch.rullgardin00_activate_setup
+                    state: "on"
+                  - condition: state
+                    entity: switch.rullgardin00_activate_tweak_mode
+                    state: "off"
             card:
               type: vertical-stack
               cards:
@@ -209,7 +212,8 @@ cards:
                     Below**
 
                     When ready, click ***[Next]*** to start the setup.</font> {%
-                    else %} - <font color='#999'>**Read steps below**
+                    else %} - <font color='#999'>**Setup Activated -Read steps
+                    below**
 
                     When ready, click ***[Next]*** to start the setup.</font> {%
                     endif %}
@@ -219,22 +223,22 @@ cards:
                     %} - <font color='#9cf'>**STEP 1 - Set Closed Position**
 
                     Click ***[Next]*** when the wanted closed position has been
-                    reached. </font> {% else %} - <font color='#999'>**STEP 1 -
+                    reached.</font> {% else %} - <font color='#999'>**STEP 1 -
                     Set Closed Position**
 
                     Click ***[Next]*** when the wanted closed position has been
-                    reached. </font> {% endif %}
+                    reached.</font> {% endif %}
 
 
                     {% if is_state('sensor.rullgardin00_setup_position', 'S2')
                     %} - <font color='#9cf'>**STEP 2 - Set Open Position**
 
                     Click ***[Next]*** when the wanted open position has been
-                    reached. </font> {% else %} - <font color='#999'>**STEP 2 -
+                    reached.</font> {% else %} - <font color='#999'>**STEP 2 -
                     Set Open Position**
 
                     Click ***[Next]*** when the wanted open position has been
-                    reached. </font> {% endif %}
+                    reached.</font> {% endif %}
 
                     ---
 
@@ -283,14 +287,180 @@ cards:
                       type: custom:button-card
           - type: conditional
             conditions:
-              - condition: state
-                entity: switch.rullgardin00_activate_setup
-                state: "off"
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity: switch.rullgardin00_activate_setup
+                    state: "off"
+                  - condition: state
+                    entity: switch.rullgardin00_activate_tweak_mode
+                    state: "on"
+            card:
+              type: vertical-stack
+              cards:
+                - type: markdown
+                  content: >
+                    ### Tweak instructions for {{
+                    states("sensor.rullgardin00_friendly_name") }}
+
+                    ---
+
+                    {% if is_state('sensor.rullgardin00_setup_position', 'F1')
+                    %} - <font color='#9cf'>**Tweak Mode Activated - Read Steps
+                    Below**
+
+                    When ready, click ***[Next]*** to start the tweaking.</font>
+                    {% else %} - <font color='#999'>**Tweak Mode Activated -
+                    Read steps below**
+
+                    When ready, click ***[Next]*** to start the tweaking.</font>
+                    {% endif %}
+
+
+                    {% if is_state('sensor.rullgardin00_setup_position', 'F2')
+                    %} - <font color='#9cf'>**STEP 1 - Adjust Closed Position**
+
+                    Wait for the Roller Blind to reach it's Closed Position
+                    then:
+
+                    Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
+                    adjust the Closed Position. Click ***[Next]*** when
+                    done.</font> {% else %} - <font color='#999'>**STEP 1 -
+                    Adjust Closed Position**
+
+                    Wait for the Roller Blind to reach the Closed Position then:
+
+                    Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
+                    adjust the Closed Position. Click ***[Next]*** when
+                    done.</font> {% endif %}
+
+
+                    {% if is_state('sensor.rullgardin00_setup_position', 'F3')
+                    %} - <font color='#9cf'>**STEP 2 - Adjust Open Position**
+
+                    Wait for the Roller Blind to reach it's Open Position then:
+
+                    Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
+                    adjust the Open Position. Click ***[Next]*** when
+                    done.</font> {% else %} - <font color='#999'>**STEP 2 -
+                    Adjust Open Position**
+
+                    Wait for the Roller Blind to reach the Open Position then:
+
+                    Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
+                    adjust the Open Position. Click ***[Next]*** when
+                    done.</font> {% endif %}
+
+                    ---
+
+                    {% if is_state('sensor.rullgardin00_setup_position', 'F4')
+                    %}<font color='#9cf'>**Tweak is Complete!** </font> {% else
+                    %}<font color='#fff'>When **STEP 2** is finished, positions
+                    will be stored and the Tweaking is complete! (this window
+                    will close)</font> {% endif %}
+                - type: conditional
+                  conditions:
+                    - condition: state
+                      entity: sensor.rullgardin00_tweak_buttons_visible
+                      state: "1"
+                  card:
+                    type: grid
+                    square: false
+                    columns: 1
+                    cards:
+                      - type: grid
+                        square: false
+                        columns: 2
+                        cards:
+                          - type: tile
+                            name: Tweak Down
+                            entity: button.rullgardin00_tweak_down
+                            tap_action:
+                              action: toggle
+                            hide_state: true
+                            color: primary
+                          - type: tile
+                            name: Tweak Up
+                            entity: button.rullgardin00_tweak_up
+                            tap_action:
+                              action: toggle
+                            hide_state: true
+                            color: primary
+                      - type: tile
+                        name: Steps to tweak by
+                        entity: number.rullgardin00_tweak_step_amount
+                        color: primary
+                        features:
+                          - type: numeric-input
+                            style: buttons
+                        features_position: inline
+                - type: grid
+                  square: false
+                  columns: 2
+                  cards:
+                    - entity: switch.rullgardin00_activate_tweak_mode
+                      name: Cancel
+                      show_state: false
+                      icon: mdi:cancel
+                      size: 100%
+                      styles:
+                        card:
+                          - background: "#922"
+                        icon:
+                          - color: "#fff"
+                          - height: 48px
+                        name:
+                          - font-size: 18px
+                          - font-weight: 500
+                      tap_action:
+                        action: toggle
+                      type: custom:button-card
+                    - entity: button.rullgardin00_action_button
+                      name: Next
+                      icon: mdi:step-forward
+                      show_state: false
+                      size: 100%
+                      styles:
+                        card:
+                          - background: "#292"
+                        icon:
+                          - color: "#fff"
+                          - height: 48px
+                        name:
+                          - font-size: 18px
+                          - font-weight: 500
+                      tap_action:
+                        action: toggle
+                      type: custom:button-card
+          - type: conditional
+            conditions:
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity: switch.rullgardin00_activate_tweak_mode
+                    state: "off"
+                  - condition: state
+                    entity: switch.rullgardin00_activate_setup
+                    state: "off"
             card:
               type: grid
               square: false
               columns: 2
               cards:
+                - type: tile
+                  color: primary
+                  entity: switch.rullgardin00_activate_setup
+                  name: Activate Setup
+                  hide_state: true
+                  tap_action:
+                    action: toggle
+                - type: tile
+                  color: primary
+                  entity: switch.rullgardin00_activate_tweak_mode
+                  name: Activate Tweak Mode
+                  hide_state: true
+                  tap_action:
+                    action: toggle
                 - type: tile
                   name: Friendly Name
                   entity: sensor.rullgardin00_friendly_name
@@ -298,41 +468,12 @@ cards:
                     action: none
                   color: accent
                 - type: tile
-                  name: Action Button
-                  entity: button.rullgardin00_action_button
+                  name: ESPHome Version
+                  entity: sensor.rullgardin00_esphome_version
+                  vertical: false
                   tap_action:
-                    action: toggle
-                  hide_state: true
-                  color: primary
-                - type: tile
-                  name: Activate Fine Tune Mode
-                  entity: switch.rullgardin00_activate_fine_tune_mode
-                  tap_action:
-                    action: toggle
-                  hide_state: true
-                  color: primary
-                - type: tile
-                  name: Fine Tune Up
-                  entity: button.rullgardin00_ft_up
-                  tap_action:
-                    action: toggle
-                  hide_state: true
-                  color: primary
-                - type: tile
-                  name: Steps
-                  entity: number.rullgardin00_fine_tune_step_amount
-                  color: primary
-                  features:
-                    - type: numeric-input
-                      style: buttons
-                  features_position: inline
-                - type: tile
-                  name: Fine Tune Down
-                  entity: button.rullgardin00_ft_down
-                  tap_action:
-                    action: toggle
-                  hide_state: true
-                  color: primary
+                    action: none
+                  color: accent
                 - type: tile
                   name: Speed
                   entity: number.rullgardin00_speed
@@ -347,13 +488,6 @@ cards:
                   tap_action:
                     action: toggle
                   color: primary
-                - type: tile
-                  name: ESPHome Version
-                  entity: sensor.rullgardin00_esphome_version
-                  vertical: false
-                  tap_action:
-                    action: none
-                  color: accent
                 - type: tile
                   name: IP
                   entity: sensor.rullgardin00_ip
@@ -403,11 +537,6 @@ cards:
                     action: none
                   color: accent
                 - type: tile
-                  name: Update
-                  entity: update.rullgardin00_firmware
-                  tap_action:
-                    action: none
-                - type: tile
                   entity: button.rullgardin00_restart
                   name: Restart
                   hide_state: true
@@ -418,7 +547,12 @@ cards:
                   vertical: false
                   hide_state: true
                   color: primary
+                - type: tile
+                  name: Update
+                  entity: update.rullgardin00_firmware
+                  tap_action:
+                    action: none
 columns: 1
 grid_options:
-  columns: 12
+  columns: full
   rows: auto
