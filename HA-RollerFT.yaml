@@ -138,15 +138,21 @@ substitutions:
   coverIP: '192.168.0.22' # Static IP
   coverGateway: '192.168.0.1'
   coverSubnet: '255.255.255.0'
-  speed: '700' # Default value, as an example, steps/s (speed) of the motor set to a value between 600-700 is usually ok for operating a "fridans" of 140 cm in width...
-  speedSteps: '50' # With what value should the step/s (speed) increase/decrease when configuring.
-  minSpeed: '100' # What value could be set as the minimum step/s (speed).
-  maxSpeed: '1000' # What value could be set as the maximum step/s (speed).
+  speed: '700' # Default 700 | Steps/s (speed) of the motor set to a value between 600-700 is usually ok for operating a "fridans" of 140 cm in width...
+  speedSteps: '50' # Default 50 | With what value should the step/s (speed) increase/decrease when configuring.
+  minSpeed: '100' # Default 100 | What value could be set as the minimum step/s (speed).
+  maxSpeed: '1000' # Default 1000 | What value could be set as the maximum step/s (speed).
   ## specify your mqtt-broker ip, uncomment to use and don't forget to uncomment the "MQTT:" section below as well
   #mqttBrokerIP: '192.168.0.211'
-  delayBetweenUpdates: 500 ms # Milliseconds between updates being pushed to Home Assistant ESPHome API
-  msToEnterSetup: 3000 ms # Milliseconds action button has do be held before entering setup mode (default 3000ms / 3 Seconds).
-  myStepper: my_stepper # Name of the stepper motor (leave as is) everythings breaks if you change.
+  delayBetweenUpdates: 500 ms # Default 500 ms | Milliseconds between updates being pushed to Home Assistant ESPHome API
+  msToEnterSetup: 3000 ms # Default 3000 ms | Milliseconds action button has do be held before entering setup mode (default 3000ms / 3 Seconds).
+  myStepper: my_stepper # Default my_stepper | Name of the stepper motor (leave as is) everythings breaks if you change.
+
+  # Tweakvalues, always change the value by a factor of two (2, 4, 8, 16, 32 and so on. One full revolution is 2048 steps).
+  tweakMax: '2048' # Default 2048 | 2048 is one full revolution of the stepper. This is the maximum number of steps to increase/decrease endstop with.
+  tweakMin: '32' # Default 32 | 32 is 1/64 of a full revolution of the stepper. This is the minimum number of steps to increase/decrease endstop with.
+  tweakInterval: '32' # Default 32 | This is how big the jump is when increasing or decreasing the the value between "tweakMax" and "tweakMin".
+  tweakInitial: '512' # Default 512 | This is the initial value of the input slider, 512 is a quarter revolution.
 
   ## Uncomment pinSLP, pinSTP and pinDIR for the microcontroller you are using
   ## If you have conflicts between pins this might help: "allow_other_uses: true"
@@ -161,7 +167,7 @@ substitutions:
   pinDIR: GPIO0  # DIRECTION > A4988
   pinSTP: GPIO4 # STEP > A4988
   pinSLP: GPIO5 # SLEEP & RESET > A4988
-  pinDIRReversed: 'false' # Change to true if roller blind goes up instead of down and vice versa (reverse direction) this can not be changed at runtime
+  pinDIRReversed: 'false' # Default false | Change to true if roller blind goes up instead of down and vice versa (reverse direction) this can not be changed at runtime
   pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
 
 # ****** Legacy PCB ****** use below and uncomment "New PCB"-section (be sure to also uncomment "allow_other_uses: true" at two locations below)
@@ -205,7 +211,7 @@ substitutions:
 api:
   encryption:
     key: !secret api_key
-  reboot_timeout: 120s
+  reboot_timeout: 300s # Default 300s
 
 # No changes needed below this line ##################################################################################################
 # No changes needed below this line ##################################################################################################
@@ -215,7 +221,7 @@ api:
 ## Board model
 esp8266:
   board: d1_mini
-  restore_from_flash: true
+  restore_from_flash: true # Default true
 
 ## ESPHome
 esphome:
@@ -285,7 +291,7 @@ wifi:
   power_save_mode: HIGH
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  fast_connect: true
+  fast_connect: true # Default true
   use_address: ${coverIP}
   manual_ip:
     static_ip: ${coverIP}
@@ -302,10 +308,10 @@ web_server:
 
 ## Enable logging
 logger:
-#  level: ERROR
 #  level: NONE
-#  baud_rate: 0
+#  level: ERROR
 #  level: VERBOSE
+#  baud_rate: 0
 
 ## Captive portal
 captive_portal:
@@ -360,11 +366,16 @@ text_sensor:
     id: setup_position
     icon: 'mdi:null'
   - platform: template
+    name: 'Tweak Buttons Visible'
+    id: tweak_buttons_visible
+    icon: 'mdi:null'
+  - platform: template
     name: 'Uptime HR'
     id: uptime_human
     icon: 'mdi:timer-outline'
   - platform: template
     name: 'Reversed Direction'
+    update_interval: never
     id: stepper_operation
     icon: 'mdi:swap-vertical-circle-outline'
     lambda: |-
@@ -614,9 +625,9 @@ binary_sensor:
     pin:
       number: ${pinButton} # Connect Button to your desired pin and GND
       mode: INPUT_PULLUP
-      inverted: true # If using a touch sensor instead of a "physical" button set this to false, else set it to true
+      inverted: true # Default true | If using a touch sensor instead of a "physical" button set this to false, else set it to true
     name: 'Action Button'
-    internal: true
+    internal: true # Default true
     on_click:
       - min_length: 50ms
         max_length: 500ms
@@ -684,9 +695,9 @@ binary_sensor:
                                             id: last_action
                                             value: '0'
                                         - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
-      - min_length: '${msToEnterSetup}' # Tinme it takes to activate setup
-        max_length: 10000ms
-        then: # Long press to Enter Setting Mode (4-10 Sec press)
+      - min_length: '${msToEnterSetup}' # Time needed to hold [Action button] to activate setup mode
+        max_length: 10000ms # Default 10000ms
+        then: # Long press to Enter Setup Mode (4-10 Sec press)
           - logger.log: 'Entered Settings Mode'
           - switch.turn_on:
               id: blue_led
@@ -717,10 +728,10 @@ stepper:
       inverted: ${pinDIRReversed}
     step_pin:
       number: ${pinSTP}
-      inverted: false
+      inverted: false # Default false
     sleep_pin:
       number: ${pinSLP}
-      inverted: false
+      inverted: false # Default false
     max_speed: '${speed}' # Speed of the motor
     acceleration: inf
     deceleration: inf
@@ -729,18 +740,18 @@ stepper:
 globals:
   - id: ${myStepper}_global # Integer for storing the stepper position in case of reboot
     type: int
-    restore_value: true
+    restore_value: true # Default true
     initial_value: '0'
 
   - id: openclosed # Boolean to store OPEN/CLOSED state
     type: bool
-    restore_value: true
+    restore_value: true # Default true
     initial_value: '0'
 
   - id: endstop # Variable for storing ENDSTOP (how far to move stepper)
     type: int
-    restore_value: true
-    initial_value: '2048'
+    restore_value: true # Default true
+    initial_value: '1024' # Initial endstop value, without configuration this should be half a revolution
 
   - id: settingsmode # Integer for Setup Mode
     type: int
@@ -765,7 +776,7 @@ globals:
   - id: tweakstepsvalue # Variable for storing how many steps to adjust endstop with in Tweak Mode
     type: int
     restore_value: no
-    initial_value: '512' # Number of Steps to add to "enstop"//subtract from "endstop" / 2048=One Revolution, 1024=Half a Revolution, 512=1/4 Revolution and so on...
+    initial_value: '${tweakInitial}' # Number of Steps to add to "enstop"//subtract from "endstop" / 2048=One Revolution, 1024=Half a Revolution, 512=Quarter Revolution and so on...
 
 ## 0=STOPPED WHILE OPENING
 ## 1=CLOSING / MOVING DOWN
@@ -782,7 +793,7 @@ number:
     step: '${speedSteps}'
     mode: slider
     initial_value: '${speed}'
-    optimistic: true
+    optimistic: true # Default true
     on_value:
       - stepper.set_speed:
           id: '${myStepper}'
@@ -795,12 +806,12 @@ number:
     name: 'Tweak Step Amount'
     id: tweaksteps
     icon: 'mdi:counter'
-    max_value: '2048' # 2048 steps is one full revolution of the stepper
-    min_value: '64'
-    step: '64'
+    max_value: '${tweakMax}' # 2048 steps is one full revolution of the stepper
+    min_value: '${tweakMin}'
+    step: '${tweakInterval}'
     mode: slider
-    initial_value: '512'
-    optimistic: true
+    initial_value: '${tweakInitial}'
+    optimistic: true # Default true
     on_value:
       - globals.set:
             id: tweakstepsvalue
@@ -860,6 +871,12 @@ switch:
     turn_on_action:
       then:
         - logger.log: 'Entered Tweak Mode'
+        - text_sensor.template.publish:
+            id: setup_position
+            state: 'F1'
+        - text_sensor.template.publish:
+            id: tweak_buttons_visible
+            state: '0'
         - globals.set:
             id: tweakmode
             value: '1'
@@ -871,6 +888,12 @@ switch:
     turn_off_action:
       then:
         - logger.log: 'Exited Tweak Mode'
+        - text_sensor.template.publish:
+            id: setup_position
+            state: ''
+        - text_sensor.template.publish:
+            id: tweak_buttons_visible
+            state: '0'
         - globals.set:
             id: tweakmode
             value: '0'
@@ -910,7 +933,7 @@ switch:
 
   - platform: gpio
     name: 'Blue LED'
-    internal: true
+    internal: true # Default true
     id: blue_led
     icon: 'mdi:alarm-light'
     pin:
@@ -918,7 +941,7 @@ switch:
       #Legacy uncomment "allow_other_uses: true" if using old pcb
       #allow_other_uses: true
       mode: OUTPUT
-    inverted: true
+    inverted: true # Default true
     restore_mode: ALWAYS_OFF
 
 ## Cover
@@ -1070,7 +1093,7 @@ cover:
         - text_sensor.template.publish:
             id: current_status
             state: 'Stopped'
-    has_position: true
+    has_position: true # Default true
     device_class: blind
 
 ## Scripts
@@ -1172,6 +1195,12 @@ script:
                 }
                 return false;
           then:
+            - text_sensor.template.publish:
+                id: setup_position
+                state: ''
+            - text_sensor.template.publish:
+                id: tweak_buttons_visible
+                state: '0'
             - globals.set: # Reset Tweak Mode
                 id: tweakmode
                 value: '0'
@@ -1193,6 +1222,12 @@ script:
                 }
                 return false;
           then:
+            - text_sensor.template.publish:
+                id: setup_position
+                state: 'F3'
+            - text_sensor.template.publish:
+                id: tweak_buttons_visible
+                state: '1'
             - stepper.set_target: # Move to Closed Position
                 id: ${myStepper}
                 target: !lambda return 0;
@@ -1210,6 +1245,12 @@ script:
           condition:
             - lambda: 'return (id(tweakmode) == 1);'
           then:
+            - text_sensor.template.publish:
+                id: setup_position
+                state: 'F2'
+            - text_sensor.template.publish:
+                id: tweak_buttons_visible
+                state: '1'
             - stepper.set_target: # Move to Open Position
                 id: ${myStepper}
                 target: !lambda return id(endstop);
