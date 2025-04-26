@@ -220,22 +220,22 @@ cards:
 
 
                     {% if is_state('sensor.rullgardin00_setup_position', 'S1')
-                    %} - <font color='#9cf'>**STEP 1 - Set Closed Position**
+                    %} 1. <font color='#9cf'>**Set Closed Position**
 
                     Click ***[Next]*** when the wanted closed position has been
-                    reached.</font> {% else %} - <font color='#999'>**STEP 1 -
-                    Set Closed Position**
+                    reached.</font> {% else %} 1. <font color='#999'>**Set
+                    Closed Position**
 
                     Click ***[Next]*** when the wanted closed position has been
                     reached.</font> {% endif %}
 
 
                     {% if is_state('sensor.rullgardin00_setup_position', 'S2')
-                    %} - <font color='#9cf'>**STEP 2 - Set Open Position**
+                    %} 2. <font color='#9cf'>**Set Open Position**
 
                     Click ***[Next]*** when the wanted open position has been
-                    reached.</font> {% else %} - <font color='#999'>**STEP 2 -
-                    Set Open Position**
+                    reached.</font> {% else %} 2. <font color='#999'>**Set Open
+                    Position**
 
                     Click ***[Next]*** when the wanted open position has been
                     reached.</font> {% endif %}
@@ -244,9 +244,10 @@ cards:
 
                     {% if is_state('sensor.rullgardin00_setup_position', 'S3')
                     %}<font color='#9cf'>**Setup is Complete!** </font> {% else
-                    %}<font color='#fff'>When **STEP 2** is finished, positions
-                    will be stored and the setup is complete! (this window will
-                    close)</font> {% endif %}
+                    %}<font color='#fff'><ha-icon
+                    icon="mdi:information-outline"></ha-icon> When **STEP 2** is
+                    finished, positions will be stored and the setup is
+                    complete! (this window will close)</font> {% endif %}
                 - type: grid
                   square: false
                   columns: 2
@@ -318,15 +319,15 @@ cards:
 
 
                     {% if is_state('sensor.rullgardin00_setup_position', 'F2')
-                    %} - <font color='#9cf'>**STEP 1 - Adjust Closed Position**
+                    %} 1. <font color='#9cf'>**Adjust Closed Position**
 
                     Wait for the Roller Blind to reach it's Closed Position
                     then:
 
                     Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
                     adjust the Closed Position. Click ***[Next]*** when
-                    done.</font> {% else %} - <font color='#999'>**STEP 1 -
-                    Adjust Closed Position**
+                    done.</font> {% else %} 1. <font color='#999'>**Adjust
+                    Closed Position**
 
                     Wait for the Roller Blind to reach the Closed Position then:
 
@@ -336,14 +337,14 @@ cards:
 
 
                     {% if is_state('sensor.rullgardin00_setup_position', 'F3')
-                    %} - <font color='#9cf'>**STEP 2 - Adjust Open Position**
+                    %} 2. <font color='#9cf'>**Adjust Open Position**
 
                     Wait for the Roller Blind to reach it's Open Position then:
 
                     Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
                     adjust the Open Position. Click ***[Next]*** when
-                    done.</font> {% else %} - <font color='#999'>**STEP 2 -
-                    Adjust Open Position**
+                    done.</font> {% else %} 2. <font color='#999'>**Adjust Open
+                    Position**
 
                     Wait for the Roller Blind to reach the Open Position then:
 
@@ -351,13 +352,19 @@ cards:
                     adjust the Open Position. Click ***[Next]*** when
                     done.</font> {% endif %}
 
+                    #### <font color='#999'><ha-icon
+                    icon='mdi:vector-circle-variant'></ha-icon> Current endstop
+                    value:</font><font color='#9cf'> {{
+                    states.sensor.rullgardin00_endstop_position.state }}</font>
+
                     ---
 
                     {% if is_state('sensor.rullgardin00_setup_position', 'F4')
                     %}<font color='#9cf'>**Tweak is Complete!** </font> {% else
-                    %}<font color='#fff'>When **STEP 2** is finished, positions
-                    will be stored and the Tweaking is complete! (this window
-                    will close)</font> {% endif %}
+                    %}<font color='#fff'><ha-icon
+                    icon="mdi:information-outline"></ha-icon> When **STEP 2** is
+                    finished, positions will be stored and the Tweaking is
+                    complete! (this window will close)</font> {% endif %}
                 - type: conditional
                   conditions:
                     - condition: state
@@ -392,7 +399,7 @@ cards:
                         color: primary
                         features:
                           - type: numeric-input
-                            style: buttons
+                            style: slider
                         features_position: inline
                 - type: grid
                   square: false
@@ -531,7 +538,7 @@ cards:
                     action: none
                   color: accent
                 - type: tile
-                  name: Configured Steps
+                  name: Endstop Value
                   entity: sensor.rullgardin00_endstop_position
                   tap_action:
                     action: none
