@@ -2,7 +2,8 @@
 # Heavily inspried by PeterG: https://www.thingiverse.com/pgote/designs
 # And RoadkillUK: https://github.com/RoadkillUK/Motor-on-a-Roller-Blind-for-ESPHOME
 
-# Tested on ESPHome Device Builder 2025.3.0 but will probably work fine on later revisions
+# Tested on ESPHome Device Builder 2025.3.4 but will probably work fine on later revisions
+# 2025.4.0 Has issues, will hopefully be resolved in later revisions
 
 # All that needs to be changed before compiling and flashing is in the 'substitutions:' section below.
 # you may need to change the 'esp8266:' section as well depending on what board and model you use...
