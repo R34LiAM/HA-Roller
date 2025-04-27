@@ -889,6 +889,7 @@ switch:
     turn_off_action:
       then:
         - logger.log: 'Exited Tweak Mode'
+        - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
         - text_sensor.template.publish:
             id: setup_position
             state: ''
