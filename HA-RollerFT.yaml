@@ -1206,6 +1206,7 @@ script:
                 id: tweakmode
                 value: '0'
             - logger.log: 'Exited Tweak Mode'
+            - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
             - text_sensor.template.publish:
                 id: current_status
                 state: 'Tweak: Closed Position stored, Tweaking finished.'
