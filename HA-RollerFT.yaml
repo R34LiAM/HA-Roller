@@ -881,6 +881,7 @@ switch:
         - globals.set:
             id: tweakmode
             value: '1'
+        - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
         - text_sensor.template.publish:
             id: current_status
             state: 'Tweak Mode has been activated, click [Action Button] to move to and then adjust the open postion.'
@@ -889,7 +890,6 @@ switch:
     turn_off_action:
       then:
         - logger.log: 'Exited Tweak Mode'
-        - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
         - text_sensor.template.publish:
             id: setup_position
             state: ''
@@ -899,6 +899,7 @@ switch:
         - globals.set:
             id: tweakmode
             value: '0'
+        - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
         - text_sensor.template.publish:
             id: current_status
             state: 'Tweak Mode cancelled'
