@@ -2,7 +2,7 @@ square: false
 type: grid
 cards:
   - type: tile
-    entity: binary_sensor.rullgardin00_window
+    entity: binary_sensor.rullgardin00_window_state
     vertical: false
     features_position: bottom
     state_content:
@@ -12,7 +12,7 @@ cards:
   - features:
       - type: light-brightness
     type: tile
-    entity: light.vardagsrum_stora_fonstret
+    entity: light.kontor_fonster
     features_position: inline
     vertical: false
     name: Lampa
@@ -181,12 +181,34 @@ cards:
       name: Last Action
       color: accent
   - type: custom:collapsable-cards
-    title: Setup, Settings and Parameters
+    title: Setup, Settings and Parameters.
     cards:
       - type: grid
         square: false
         columns: 1
         cards:
+          - type: conditional
+            conditions:
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity: switch.rullgardin00_activate_setup
+                    state: "off"
+                  - condition: state
+                    entity: switch.rullgardin00_activate_tweak_mode
+                    state: "off"
+                  - condition: state
+                    entity: sensor.rullgardin00_endstop_position
+                    state: "0"
+            card:
+              type: grid
+              square: false
+              columns: 1
+              cards:
+                - type: markdown
+                  content: >
+                    <ha-icon icon="mdi:alert-box"></ha-icon> **Missing endstop
+                    or zero value, Run Setup**
           - type: conditional
             conditions:
               - condition: and
@@ -457,30 +479,17 @@ cards:
                 - type: tile
                   color: primary
                   entity: switch.rullgardin00_activate_setup
-                  name: Activate Setup
+                  name: Setup
                   hide_state: true
                   tap_action:
                     action: toggle
                 - type: tile
                   color: primary
                   entity: switch.rullgardin00_activate_tweak_mode
-                  name: Activate Tweak Mode
+                  name: Tweak
                   hide_state: true
                   tap_action:
                     action: toggle
-                - type: tile
-                  name: Friendly Name
-                  entity: sensor.rullgardin00_friendly_name
-                  tap_action:
-                    action: none
-                  color: accent
-                - type: tile
-                  name: ESPHome Version
-                  entity: sensor.rullgardin00_esphome_version
-                  vertical: false
-                  tap_action:
-                    action: none
-                  color: accent
                 - type: tile
                   name: Speed
                   entity: number.rullgardin00_speed
@@ -495,6 +504,19 @@ cards:
                   tap_action:
                     action: toggle
                   color: primary
+                - type: tile
+                  name: Friendly Name
+                  entity: sensor.rullgardin00_friendly_name
+                  tap_action:
+                    action: none
+                  color: accent
+                - type: tile
+                  name: ESPHome Version
+                  entity: sensor.rullgardin00_esphome_version
+                  vertical: false
+                  tap_action:
+                    action: none
+                  color: accent
                 - type: tile
                   name: IP
                   entity: sensor.rullgardin00_ip
@@ -538,11 +560,22 @@ cards:
                     action: none
                   color: accent
                 - type: tile
+                  name: Reversed Direction
+                  entity: sensor.rullgardin00_reversed_direction
+                  tap_action:
+                    action: none
+                  color: accent
+                - type: tile
                   name: Endstop Value
                   entity: sensor.rullgardin00_endstop_position
                   tap_action:
                     action: none
                   color: accent
+                - type: tile
+                  name: Update
+                  entity: update.rullgardin00_firmware
+                  tap_action:
+                    action: none
                 - type: tile
                   entity: button.rullgardin00_restart
                   name: Restart
@@ -554,11 +587,6 @@ cards:
                   vertical: false
                   hide_state: true
                   color: primary
-                - type: tile
-                  name: Update
-                  entity: update.rullgardin00_firmware
-                  tap_action:
-                    action: none
 columns: 1
 grid_options:
   columns: full
