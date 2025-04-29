@@ -185,7 +185,10 @@ substitutions:
 
 ## Substitutions ends here...
 
-# Normally no changes below this line is needed ##################################################################################################
+# Normally no changes below these lines are needed ##################################################################################################
+# Normally no changes below these lines are needed ##################################################################################################
+# Normally no changes below these lines are needed ##################################################################################################
+# Normally no changes below these lines are needed ##################################################################################################
 
 ## MQTT
 ## Uncomment below if you want to control it using MQTT and uncomment "api:"-section  for HA ESPHome API above
