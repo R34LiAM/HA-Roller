@@ -15,7 +15,7 @@
 
 # Setup option 1 (Easiest)
 #-----------------------------
-# Add the yaml-code from this repo to your Home Assistant dashboard.
+# Add the yaml-code from this repo to your Home Assistant dashboard (HA_CARD.yaml).
 # 1) Expand the 'Setup, Settings and Parameters' section in the card and clicking 'Setup'.
 # 2) Follow the on screen instructions...
 # Repeat from step 1 if you need to reconfigure in the future.
