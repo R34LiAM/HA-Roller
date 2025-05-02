@@ -1,22 +1,22 @@
 # REALiAM: https://github.com/R34LiAM/HA-Roller
-# Heavily inspried by PeterG: https://www.thingiverse.com/pgote/designs
-# And RoadkillUK: https://github.com/RoadkillUK/Motor-on-a-Roller-Blind-for-ESPHOME
+# With inspiration from RoadkillUK: https://github.com/RoadkillUK/Motor-on-a-Roller-Blind-for-ESPHOME
 
-# Tested on ESPHome Device Builder 2025.3.0 but will probably work fine on later revisions
+# Verified working on ESPHome Device Builder 2025.2.2 but will probably work fine on later revisions (or earlier)
 
 # All that needs to be changed before compiling and flashing is in the 'substitutions:' section below.
-# you may need to change the 'esp8266:' section as well depending on what board and model you use...
+# you may need to change the 'Board model' section as well depending on what board and model you use...
 
 # Once the ESP has booted for the first time it's time for configuration
 # The easiest way, if using Home Assistant, is to use the yaml-code in the card from this repo.
-# OR access the webGUI at <coverip>:80 or <hostname>.local:80 if you have mDNS, or use a hardwired button to configure it.
-# I recommend wiring a button so the roller can be controlled "manually" at the window, See setup option 2 below.
-# If no button is wired see setup option 1 or 3 below for setup using Home Assistant or the webGUI.
+# OR access the webGUI at <coverIP>:80 or <hostname>.local:80 if you have mDNS, you need to have the web server enabled.
+# OR use a hardwired button to configure it [Action Button].
+# I recommend wiring a button so the roller can be controlled and configured "manually" at the window, See setup option 2 below.
+# If no button is wired see setup option 1 or 3 below for setup using Home Assistant or the web server GUI.
 
 # Setup option 1 (Easiest)
 #-----------------------------
 # Add the yaml-code from this repo to your Home Assistant dashboard.
-# 1) Expand the 'Setup, Settings and Parameters' section in the card and click 'Activate Setup'.
+# 1) Expand the 'Setup, Settings and Parameters' section in the card and clicking 'Setup'.
 # 2) Follow the on screen instructions...
 # Repeat from step 1 if you need to reconfigure in the future.
 
@@ -34,10 +34,10 @@
 
 # Setup option 3
 #---------------
-# 1) Turn on the 'Activate Setup' Switch to enter setup mode.
-# 2) Press Action button to start the blind closing.
-# 3) Press Action button again when closed and blind starts to open. (actually resets the stepper position to 0)
-# 4) Press Action button again when blind is fully open.
+# 1) Turn on the [Setup] Switch to enter setup mode.
+# 2) Press [Action Button] to start the blind closing.
+# 3) Press [Action Button] again when closed and blind starts to open. (actually resets the stepper position to 0)
+# 4) Press [Action Button] again when the blind is fully open.
 # 5) Done.
 
 # Add to your frontend of choice.
@@ -53,6 +53,9 @@
 # Added ability to "adjust" stepper speed, perfect for automations that run late at night when more quiet operation is preferred over speed. (for a 28byj-48 5v stepper motor a value of 600-700 steps/s works well)
 # Added visual cue, the onboard LED of the Wemos D1 mini lights up (blue) to indicate when in setup mode, might need "allow_other_uses: true" for older designs
 # Rearranged a whole lot to make it easier to change needed parameters
+# Fixed all (hopefully) poorly named variables
+# Added support for "tweaking" endposition after setup is completed
+# Commented out web server to save on resources, did alot for stability
 
 # Pretty much everything is customized in the "substitutions"-section below.
 # If not using a "secrets"-file (which I recommend) you also have to change:
@@ -133,145 +136,81 @@
 
 ## Substitutions
 substitutions:
-  sub_hostname: 'rullgardinESP3201' #hostname/devicename/esphome sensors (keep lcase)
-  sub_friendly_name: 'Roller ESP32' #More easily identify you roller
-  coverip: '192.168.0.151' #static IP
-  covergatway: '192.168.0.1'
-  coversubnet: '255.255.255.0'
-  speed: '700' # Default value, as an example, steps/s (speed) of the motor set to a value between 600-700 is usually ok for operating a "fridans" of 140 cm in width...
-  speedsteps: '50' # With what value should the step/s (speed) increase/decrease when configuring.
-  minspeed: '100' # What value could be set as the minimum step/s (speed).
-  maxspeed: '1000' # What value could be set as the maximum step/s (speed).
+  subHostname: 'roller99' # hostname/devicename/esphome sensors (keep lcase)
+  subFriendlyName: 'Roller ESP32' # More easily identify you roller
+  coverIP: '192.168.0.21' # Static IP
+  coverGateway: '192.168.0.1'
+  coverSubnet: '255.255.255.0'
+  speed: '700' # Default 700 | Steps/s (speed) of the motor set to a value between 600-700 is usually ok for operating a "fridans" of 140 cm in width...
+  speedSteps: '50' # Default 50 | With what value should the step/s (speed) increase/decrease when configuring.
+  minSpeed: '100' # Default 100 | What value could be set as the minimum step/s (speed).
+  maxSpeed: '1000' # Default 1000 | What value could be set as the maximum step/s (speed).
   ## specify your mqtt-broker ip, uncomment to use and don't forget to uncomment the "MQTT:" section below as well
-  #mqtt_broker_ip: '192.168.0.211'
-  mystepper: my_stepper # Name of the stepper motor (leave as is) everythings breaks if you do.
-  delaybetweenupdates: 500 ms # Milliseconds between updates being pushed to Home Assistant ESPHome API
+  #mqttBrokerIP: '192.168.0.23'
+  delayBetweenUpdates: 500 ms # Default 500 ms | Milliseconds between updates being pushed to Home Assistant ESPHome API
+  msToEnterSetup: 3000 ms # Default 3000 ms | Milliseconds action button has do be held before entering setup mode (default 3000ms / 3 Seconds).
+  myStepper: my_stepper # Default my_stepper | Name of the stepper motor (leave as is) everythings breaks if you change.
 
-  #ESP32 C3 Super Mini
-  #pinPIR: D7 # PIR pin
-  #pinIRSend: D6 # Playback IR signals from MQTT topic
-  pinButton: GPIO5 # physical button to controll roller (up/stop/down/stop/up.......) (hold for ~5 seconds to enter setup mode/press once to start closing,press again at maximum-/bottom position,lastly press at minimum-/top position)
-  pinReedSwitch: GPIO4 # Used for window reed(magnetic) sensor
-  #pinXtra: D1 #might be used for something
-  pina: GPIO3
-  pinb: GPIO1
-  pinc: GPIO0
-  pinLED: GPIO8
+  # Tweakvalues, always change the value by a factor of two (2, 4, 8, 16, 32 and so on. One full revolution is 2048 steps).
+  tweakMax: '2048' # Default 2048 | 2048 is one full revolution of the stepper. This is the maximum number of steps to increase/decrease endstop with.
+  tweakMin: '32' # Default 32 | 32 is 1/64 of a full revolution of the stepper. This is the minimum number of steps to increase/decrease endstop with.
+  tweakInterval: '32' # Default 32 | This is how big the jump is when increasing or decreasing the the value between "tweakMax" and "tweakMin".
+  tweakInitial: '512' # Default 512 | This is the initial value of the input slider, 512 is a quarter revolution.
 
-esphome:
-  name: '${sub_hostname}'
-  friendly_name: '${sub_hostname} (${sub_friendly_name})'
-  on_boot:
-    - priority: -200.0
-      then:
-        - text_sensor.template.publish:
-            id: current_status
-            state: 'Started'
-        - stepper.report_position: # Set stepper to global variable
-            id: ${mystepper}
-            position: !lambda return id(${mystepper}_global);
-        - stepper.set_target: # Set stepper to global variable
-            id: ${mystepper}
-            target: !lambda return id(${mystepper}_global);
-        - if: # If blind is Closed
-            condition:
-              - lambda: 'return id(${mystepper}_global) == 0;'
-            then: # Publish state etc.
-              - cover.template.publish:
-                  id: blinded
-                  state: CLOSED
-              - globals.set:
-                  id: last_action
-                  value: '2'
-              - text_sensor.template.publish:
-                  id: current_status
-                  state: 'Closed'
-        - if: # If blind is Open
-            condition:
-              - lambda: 'return id(${mystepper}_global) == id(endstop);'
-            then: # Publish state etc.
-              - cover.template.publish:
-                  id: blinded
-                  state: OPEN
-                  current_operation: IDLE
-              - globals.set:
-                  id: last_action
-                  value: '0'
-              - text_sensor.template.publish:
-                  id: current_status
-                  state: 'Open'
-        - if: # If blind is Neither
-            condition:
-              - lambda: 'return (id(${mystepper}_global) != 0) && (id(${mystepper}_global) != id(endstop));'
-            then: #  # Publish state etc.
-              - cover.template.publish:
-                  id: blinded
-                  position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
-                  current_operation: IDLE
-              - globals.set:
-                  id: last_action
-                  value: '0'
-              - text_sensor.template.publish:
-                  id: current_status
-                  state: !lambda |-
-                    int pos = round(float(float(id(${mystepper}).current_position) / float(id(endstop))) * 100);
-                    return (
-                      ("Open: ") +
-                      (pos ? esphome::to_string(pos) + "%" : "")
-                    ).c_str();
+  ## Uncomment pinSLP, pinSTP and pinDIR for the microcontroller you are using
+  ## If you have conflicts between pins this might help: "allow_other_uses: true"
 
-esp32:
-  board: esp32-c3-devkitm-1
-  framework:
-    type: esp-idf
-    version: recommended
-    # Custom sdkconfig options
-    sdkconfig_options:
-      CONFIG_COMPILER_OPTIMIZATION_SIZE: y
-    # Advanced tweaking options
-    advanced:
-      ignore_efuse_mac_crc: false
+# ****** New PCB ****** use below and uncomment "Legacy PCB"-section
+  ##ESP32 C3 Super Mini
+  #pinPIR: # PIR (Passive IR sensor) pin
+  #pinIRSend: # Playback IR signals from MQTT topic
+  pinButton: GPIO0 # physical button to controll the roller blind (up/stop/down/stop/up.......) (hold for +5 seconds to enter setup mode/press once to start closing, press again at maximum-/bottom position, lastly press at minimum-/top position)
+  pinReedSwitch: GPIO4 # Used for window open/closed, a reed(magnetic) sensor
+  #pinXtra: # Might be used for something of your choice
+  pinDIR: GPIO3 # DIRECTION > A4988
+  pinSTP: GPIO2 # STEP > A4988
+  pinSLP: GPIO1 # SLEEP & RESET > A4988
+  pinDIRReversed: 'false' # Default false | Change to true if roller blind goes up instead of down and vice versa (reverse direction) this can not be changed at runtime
+  pinLED: GPIO8 # Used for the ESP32 C3 Super Mini on board Blue LED to indicate when in "setup-mode"/LED on
 
-## WIFI
-wifi:
-  power_save_mode: HIGH
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-  fast_connect: true
-  use_address: ${coverip}
-  manual_ip:
-    static_ip: ${coverip}
-    gateway: ${covergatway}
-    subnet: ${coversubnet}
-  # Enable fallback hotspot (captive portal) in case wifi connection fails...
-  ap:
-    ssid: '${sub_hostname} Hotspot'
-    password: !secret ap_fallback_wifi_password
+  ## Wemos d1 mini
+  #pinPIR: D7 # PIR (Passive IR sensor) pin
+  #pinIRSend: D5 # Playback IR signals from MQTT topic
+  #pinButton: GPIO1 #TX # physical button to controll the roller blind (up/stop/down/stop/up.......) (hold for +5 seconds to enter setup mode/press once to start closing, press again at maximum-/bottom position, lastly press at minimum-/top position)
+  #pinReedSwitch: GPIO12 #D6 # Used for window open/closed, a reed(magnetic) sensor
+  #pinXtra: # Might be used for something of your choice
+  #pinDIR: GPIO0  # DIRECTION > A4988
+  #pinSTP: GPIO4 # STEP > A4988
+  #pinSLP: GPIO5 # SLEEP & RESET > A4988
+  #pinDIRReversed: 'false' # Default false | Change to true if roller blind goes up instead of down and vice versa (reverse direction) this can not be changed at runtime
+  #pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
 
-## Webserver 
-web_server:
-  port: 80
+# ****** Legacy PCB ****** use below and uncomment "New PCB"-section (be sure to also uncomment "allow_other_uses: true" at two locations below)
+#  pinButton: GPIO1 #TX # physical button to controll the roller blind (up/stop/down/stop/up.......) (hold for +5 seconds to enter setup mode/press once to start closing, press again at maximum-/bottom position, lastly press at minimum-/top position)
+#  pinReedSwitch: GPIO12 #D6 # Used for window open/closed, a reed(magnetic) sensor
+#  #pinXtra: # Might be used for something of your choice
+#  pinDIR: GPIO2  # DIRECTION > A4988
+#  pinSTP: GPIO0 # STEP > A4988
+#  pinSLP: GPIO4 # SLEEP & RESET > A4988
+#  pinDIRReversed: 'false' # Change to true if roller blind goes up instead of down and vice versa (reverse direction) this can not be changed at runtime
+#  pinLED: GPIO2 # Used for the Wemos on board LED to indicate when in "setup-mode"/LED on
 
-## Enable logging
-logger:
-#  level: VERBOSE
+## Substitutions ends here...
 
-## Enable Home Assistant ESPHome API
-## Comment out if not using HA ESPHome API and instead use MQTT
-api:
-  encryption:
-    key: !secret api_key
-  reboot_timeout: 120s
+# Normally no changes below these lines are needed ##################################################################################################
+# Normally no changes below these lines are needed ##################################################################################################
+# Normally no changes below these lines are needed ##################################################################################################
+# Normally no changes below these lines are needed ##################################################################################################
 
 ## MQTT
 ## Uncomment below if you want to control it using MQTT and uncomment "api:"-section  for HA ESPHome API above
 #mqtt:
-#  broker: $mqtt_broker_ip
+#  broker: $mqttBrokerIP
 #  discovery: True
 #  username:
 #  password:
 #  on_message:
-#    topic: $sub_hostname/ir/send
+#    topic: $subHostname/ir/send
 #    then:
 #    - remote_transmitter.transmit_raw:
 #        carrier_frequency: 38kHz
@@ -288,13 +227,128 @@ api:
 #          }
 #          return txv;
 
+
+## Enable Home Assistant ESPHome API
+## Comment out this section if you are not using HA ESPHome API and instead use MQTT or if you use them as standalone units controlled via the [Action Button]. (standalone means you comment out both MQTT and API)
+api:
+  encryption:
+    key: !secret api_key
+  reboot_timeout: 300s # Default 300s
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+    version: recommended
+    # Custom sdkconfig options
+    sdkconfig_options:
+      CONFIG_COMPILER_OPTIMIZATION_SIZE: y
+    # Advanced tweaking options
+    advanced:
+      ignore_efuse_mac_crc: false
+
+## Board model
+#esp8266:
+#  board: d1_mini
+#  restore_from_flash: true # Default true
+
+## ESPHome
+esphome:
+  name: '${subHostname}'
+  friendly_name: '${subHostname} (${subFriendlyName})'
+  on_boot:
+    - priority: -200.0
+      then:
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Started'
+        - stepper.report_position: # Set stepper to global variable
+            id: ${myStepper}
+            position: !lambda return id(${myStepper}_global);
+        - stepper.set_target: # Set stepper to global variable
+            id: ${myStepper}
+            target: !lambda return id(${myStepper}_global);
+        - if: # If blind is Closed
+            condition:
+              - lambda: 'return id(${myStepper}_global) == 0;'
+            then: # Publish state etc.
+              - cover.template.publish:
+                  id: rollerblind
+                  state: CLOSED
+              - globals.set:
+                  id: last_action
+                  value: '2'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: 'Closed'
+        - if: # If blind is Open
+            condition:
+              - lambda: 'return id(${myStepper}_global) == id(endstop);'
+            then: # Publish state etc.
+              - cover.template.publish:
+                  id: rollerblind
+                  state: OPEN
+                  current_operation: IDLE
+              - globals.set:
+                  id: last_action
+                  value: '0'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: 'Open'
+        - if: # If blind is Neither
+            condition:
+              - lambda: 'return (id(${myStepper}_global) != 0) && (id(${myStepper}_global) != id(endstop));'
+            then: #  # Publish state etc.
+              - cover.template.publish:
+                  id: rollerblind
+                  position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+                  current_operation: IDLE
+              - globals.set:
+                  id: last_action
+                  value: '0'
+              - text_sensor.template.publish:
+                  id: current_status
+                  state: !lambda |-
+                    int pos = round(float(float(id(${myStepper}).current_position) / float(id(endstop))) * 100);
+                    return (
+                      ("Open: ") +
+                      (pos ? esphome::to_string(pos) + "%" : "")
+                    ).c_str();
+
+## WIFI
+wifi:
+  power_save_mode: none
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true # Default true
+  use_address: ${coverIP}
+  manual_ip:
+    static_ip: ${coverIP}
+    gateway: ${coverGateway}
+    subnet: ${coverSubnet}
+  ## Enable fallback hotspot (captive portal) in case wifi connection fails...
+  ap:
+    ssid: '${subHostname} Hotspot'
+    password: !secret ap_fallback_wifi_password
+
+## Web server, takes alot of resources so uncomment only if needed
+web_server:
+  port: 80
+
+## Enable logging
+logger:
+#  level: NONE
+#  level: ERROR
+#  level: VERBOSE
+#  baud_rate: 0
+
 ## Captive portal
 captive_portal:
 
 ## OTA
 ota:
-  platform: esphome
-  password: !secret ota_password
+  - platform: esphome
+    password: !secret ota_password
 
 ## Sync time with Home Assistant.
 time:
@@ -309,10 +363,10 @@ time:
 
 ## Text sensors with general information.
 text_sensor:
-  # Expose ESPHome version as sensor.
+  ## Expose ESPHome version as sensor.
   - platform: version
     name: 'ESPHome Version'
-  # Expose WiFi information as sensors.
+  ## Expose WiFi information as sensors.
   - platform: wifi_info
     ip_address:
       name: 'IP'
@@ -330,7 +384,7 @@ text_sensor:
     name: 'Friendly Name'
     icon: 'mdi:heart-outline'
     lambda: |-
-      return {"${sub_friendly_name}"};
+      return {"${subFriendlyName}"};
   - platform: template
     name: 'Last Action'
     update_interval: never
@@ -341,13 +395,29 @@ text_sensor:
     id: setup_position
     icon: 'mdi:null'
   - platform: template
+    name: 'Tweak Buttons Visible'
+    id: tweak_buttons_visible
+    icon: 'mdi:null'
+  - platform: template
     name: 'Uptime HR'
     id: uptime_human
     icon: 'mdi:timer-outline'
+  - platform: template
+    name: 'Reversed Direction'
+    id: stepper_operation
+    icon: 'mdi:swap-vertical-circle-outline'
+    lambda: |-
+      return {"${pinDIRReversed}"};
+  - platform: template
+    name: 'Endstop position'
+    id: endstop_position
+    icon: 'mdi:vector-circle-variant'
+    lambda: |-
+      return {esphome::to_string(id(endstop)).c_str()};
 
 ## Buttons
 button:
-  # Button to restart the device
+  ## Button to restart the device
   - platform: restart
     name: 'Restart'
     icon: 'mdi:restart'
@@ -360,13 +430,216 @@ button:
     on_press:
       - if: # If settings variable is on
           condition:
-            - lambda: 'return id(settingmode) != 0;'
+            - lambda: 'return id(settingsmode) != 0;'
           then: # Enter Setting Mode
-            - script.execute: setupbutton
+            - script.execute: setupscript
+
+      - if: # If tweak variable is on
+          condition:
+            - lambda: 'return id(tweakmode) != 0;'
+          then: # Enter Tweak Mode
+            - script.execute: tweakscript
+
+  - platform: template
+    name: 'Tweak Up'
+    icon: 'mdi:arrow-up-bold-hexagon-outline'
+    on_press:
+      - if: # Check if Tweak Mode is Activated
+          condition:
+            - lambda: |-
+                if ( id(tweakmode) != 0 ) {
+                  return true;
+                } else {
+                  return false;
+                }
+          then:
+            # If Tweak Mode is Activated Check if at Top Position
+            - if: # Adjusting Top Position Up
+                condition:
+                  - lambda: |-
+                      if ( id(tweakmode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                        return true;
+                      } else {
+                        return false;
+                      }
+                then:
+                  - if:
+                      condition:
+                        - lambda: |-
+                            if ( id(tweakmode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                              return true;
+                            } else {
+                              return false;
+                            }
+                      then:
+                        - stepper.set_target: # Set Stepper position
+                            id: ${myStepper}
+                            target: !lambda 'return id(endstop) + id(tweakstepsvalue);'
+                        - globals.set: # Set Global stepper position
+                            id: ${myStepper}_global
+                            value: !lambda 'return id(endstop) + id(tweakstepsvalue);'
+                        - globals.set: # Set Endstop Variable
+                            id: endstop
+                            value: !lambda 'return id(endstop) + id(tweakstepsvalue);'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Tweak: Top Position Adjusted Upwards'
+
+            # If Tweak Mode is Activated Check if at Bottom Position
+            - if: # Adjusting Bottom Position Up
+                condition:
+                  - lambda: |-
+                      if ( id(tweakmode) == 3 && id(${myStepper}).current_position == 0 ) {
+                        return true;
+                      } else {
+                        return false;
+                      }
+                then:
+                  - if:
+                      condition:
+                        - lambda: 'return (id(endstop) > id(tweakstepsvalue));'
+                      then:
+                        - stepper.set_target: # Set Stepper position to negative tweakstepsvalue
+                            id: ${myStepper}
+                            target: !lambda 'return (id(tweakstepsvalue)*-1);'
+                        - stepper.report_position: # Reset Stepper position to current position - tweakstepsvalue
+                             id: ${myStepper}
+                             position: !lambda |-
+                               return id($myStepper).current_position - id(tweakstepsvalue);
+                        - stepper.set_target: # Reset Stepper position target to 0
+                            id: ${myStepper}
+                            target: '0'
+                        - globals.set: # Set Global stepper position to 0
+                            id: ${myStepper}_global
+                            value: !lambda 'return 0;'
+                        - globals.set: # Set Endstop Variable endstop - tweakstepsvalue
+                            id: endstop
+                            value: !lambda 'return id(endstop) - id(tweakstepsvalue);'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Tweak: Bottom Position Adjusted Upwards'
+                  - if:
+                      condition:
+                        - lambda: 'return (id(endstop) <= 0);'
+                      then:
+                        - stepper.set_target: # Set Stepper position to negative tweakstepsvalue
+                            id: ${myStepper}
+                            target: !lambda 'return (id(endstop)*-1);'
+                        - stepper.report_position: # Reset Stepper position to current position - tweakstepsvalue
+                             id: ${myStepper}
+                             position: !lambda |-
+                               return 0;
+                        - stepper.set_target: # Reset Stepper position target to 0
+                            id: ${myStepper}
+                            target: '0'
+                        - globals.set: # Set Global stepper position to 0
+                            id: ${myStepper}_global
+                            value: !lambda 'return 0;'
+                        - globals.set: # Set Endstop Variable endstop - tweakstepsvalue
+                            id: endstop
+                            value: !lambda 'return 0;'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Tweak: Bottom Position Adjusted Upwards'
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return esphome::to_string(id(endstop)).c_str();  
+
+  - platform: template
+    name: 'Tweak Down'
+    icon: 'mdi:arrow-down-bold-hexagon-outline'
+    on_press:
+      - if: # Check if Tweak Mode is Activated
+          condition:
+            - lambda: |-
+                if ( id(tweakmode) != 0 ) {
+                  return true;
+                } else {
+                  return false;
+                }
+          then:
+            # If Tweak Mode is Activated Check if at Top Position
+            - if: # Adjusting Top Position Down
+                condition:
+                  - lambda: |-
+                      if ( id(tweakmode) == 2 ) {
+                        return true;
+                      } else {
+                        return false;
+                      }
+                then:
+                  - if:
+                      condition:
+                        - lambda: 'return (id(endstop) - id(tweakstepsvalue) >= 0);'
+                      then:
+                        - stepper.set_target: # Set Stepper position
+                            id: ${myStepper}
+                            target: !lambda 'return id(endstop) - id(tweakstepsvalue);'
+                        - globals.set: # Set Global stepper position
+                            id: ${myStepper}_global
+                            value: !lambda 'return id(endstop) - id(tweakstepsvalue);'
+                        - globals.set: # Set Endstop Variable
+                            id: endstop
+                            value: !lambda 'return id(endstop) - id(tweakstepsvalue);'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Tweak: Top Position Adjusted Downwards'
+                        - text_sensor.template.publish:
+                            id: endstop_position
+                            state: !lambda 'return esphome::to_string(id(endstop)).c_str();'
+                      else:
+                        - stepper.set_target: # Set Stepper position
+                            id: ${myStepper}
+                            target: !lambda 'return 0;'
+                        - globals.set: # Set Global stepper position
+                            id: ${myStepper}_global
+                            value: !lambda 'return 0;'
+                        - globals.set: # Set Endstop Variable
+                            id: endstop
+                            value: !lambda 'return 0;'
+                        - text_sensor.template.publish:
+                            id: current_status
+                            state: 'Tweak: Top Position cant go lower'
+                        - text_sensor.template.publish:
+                            id: endstop_position
+                            state: !lambda 'return esphome::to_string(id(endstop)).c_str();'
+            # If Tweak Mode is Activated Check if at Bottom Position
+            - if: # Adjusting Bottom Position Down
+                condition:
+                  - lambda: |-
+                      if ( id(tweakmode) == 3 && id(${myStepper}).current_position == 0 ) {
+                        return true;
+                      } else {
+                         return false;
+                      }
+                then:
+                  - stepper.set_target: # Set Stepper position
+                      id: ${myStepper}
+                      target: !lambda 'return id(tweakstepsvalue);'
+                  - stepper.report_position: # Reset Stepper position to 0
+                      id: ${myStepper}
+                      position: !lambda |-
+                        return id($myStepper).current_position + id(tweakstepsvalue);
+                  - stepper.set_target: # Reset Stepper position to 0
+                      id: ${myStepper}
+                      target: '0'
+                  - globals.set: # Set Global stepper position
+                      id: ${myStepper}_global
+                      value: !lambda 'return 0;'
+                  - globals.set: # Set Endstop Variable
+                      id: endstop
+                      value: !lambda 'return id(endstop) + id(tweakstepsvalue);'
+                  - text_sensor.template.publish:
+                      id: current_status
+                      state: 'Tweak: Bottom Position Adjusted Downwards'
+                  - text_sensor.template.publish:
+                      id: endstop_position
+                      state: !lambda 'return esphome::to_string(id(endstop)).c_str();'
 
 ## Sensors with general information.
 sensor:
-  # Uptime sensor.
+  ## Uptime sensor.
   - platform: uptime
     name: 'Uptime'
     id: 'upptime'
@@ -389,7 +662,7 @@ sensor:
                 (minutes ? esphome::to_string(minutes) + "m " : "") +
                 (esphome::to_string(seconds) + "s")
               ).c_str();
-  # WiFi Signal sensor.
+  ## WiFi Signal sensor.
   - platform: wifi_signal
     name: 'WiFi Signal'
     update_interval: 120s
@@ -400,24 +673,24 @@ binary_sensor:
 #  - platform: gpio
 #    pin: 
 #      number: $pinPIR
-#    name: '${sub_hostname} motion'
+#    name: '${subHostname} motion'
 #    device_class: motion
   - platform: gpio
     pin:
       number: ${pinButton} # Connect Button to your desired pin and GND
       mode: INPUT_PULLUP
-      inverted: true #If using a touch sensor instead of a "physical" button set this to false, else set it to true
+      inverted: true # Default true | If using a touch sensor instead of a "physical" button set this to false, else set it to true
     name: 'Action Button'
-    internal: true
+    internal: true # Default true
     on_click:
       - min_length: 50ms
         max_length: 500ms
         then: # Short press to OPEN/CLOSE blinds and also for setting up
           - if: # If settings variable is on
               condition:
-                - lambda: 'return id(settingmode) != 0;'
+                - lambda: 'return id(settingsmode) != 0;'
               then: # Enter Setting Mode
-                - script.execute: setupbutton
+                - script.execute: setupscript
               else:
                 - if: # If blind is stopped while opening #0=STOPPED WHILE OPENING
                     condition:
@@ -429,7 +702,7 @@ binary_sensor:
                       - globals.set:
                           id: last_action
                           value: '1'
-                      - lambda: 'auto call = id(blinded).make_call().set_command_close(); call.perform();'
+                      - lambda: 'auto call = id(rollerblind).make_call().set_command_close(); call.perform();'
                     else:
                       - if: # If blind is moving down #1=MOVING DOWN
                           condition:
@@ -438,7 +711,7 @@ binary_sensor:
                             - text_sensor.template.publish:
                                 id: current_status
                                 state: !lambda |-
-                                  int pos = round(float(float(id($mystepper).current_position) / float(id(endstop))) * 100);
+                                  int pos = round(float(float(id($myStepper).current_position) / float(id(endstop))) * 100);
                                   return (
                                     (pos ? esphome::to_string(pos) + "% open" : "") +
                                     (" / Stopped while closing")
@@ -446,7 +719,7 @@ binary_sensor:
                             - globals.set:
                                 id: last_action
                                 value: '2'
-                            - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
+                            - lambda: 'auto call = id(rollerblind).make_call().set_command_stop(); call.perform();'
                           else:
                             - if: # If blind is stopped while closing #2=STOPPED WHILE CLOSING
                                 condition:
@@ -458,7 +731,7 @@ binary_sensor:
                                   - globals.set:
                                       id: last_action
                                       value: '3'
-                                  - lambda: 'auto call = id(blinded).make_call().set_command_open(); call.perform();'
+                                  - lambda: 'auto call = id(rollerblind).make_call().set_command_open(); call.perform();'
                                 else:
                                   - if: # If blind is moving up #3=MOVING UP
                                       condition:
@@ -467,7 +740,7 @@ binary_sensor:
                                         - text_sensor.template.publish:
                                             id: current_status
                                             state: !lambda |-
-                                              int pos = round(float(float(id(${mystepper}).current_position) / float(id(endstop))) * 100);
+                                              int pos = round(float(float(id(${myStepper}).current_position) / float(id(endstop))) * 100);
                                               return (
                                                 (pos ? esphome::to_string(pos) + "% open" : "") +
                                                 (" / Stopped while opening")
@@ -475,64 +748,66 @@ binary_sensor:
                                         - globals.set:
                                             id: last_action
                                             value: '0'
-                                        - lambda: 'auto call = id(blinded).make_call().set_command_stop(); call.perform();'
-
-      - min_length: 4000ms
-        max_length: 10000ms
-        then: # Long press to Enter Setting Mode (4-10 Sec press)
+                                        - lambda: 'auto call = id(rollerblind).make_call().set_command_stop(); call.perform();'
+      - min_length: '${msToEnterSetup}' # Time needed to hold [Action button] to activate setup mode
+        max_length: 10000ms # Default 10000ms
+        then: # Long press to Enter Setup Mode (4-10 Sec press)
           - logger.log: 'Entered Settings Mode'
-          ## TODO: blink wemos D1 mini onboard LED when in settings mode, need to change pinouts so have not bothered
+          - switch.turn_on:
+              id: blue_led
           - globals.set:
-              id: settingmode
+              id: settingsmode
               value: '1'
           - text_sensor.template.publish:
               id: current_status
               state: 'Setup activated, click to start'
 
-#  - platform: gpio
-#    pin:
-#      number: $pinReedSwitch
-#      mode: INPUT_PULLUP
-#    name: 'Window'
-#    filters:
-#      - delayed_on: 1000ms
-#    device_class: window
+  - platform: gpio
+    pin:
+      number: $pinReedSwitch
+      mode: INPUT_PULLUP
+    name: 'Window'
+    filters:
+      - delayed_on: 250ms
+    device_class: window
     
 ## Stepper
 stepper:
   - platform: a4988
-    id: $mystepper
+    id: $myStepper
     dir_pin:
-      number: ${pina}
-      inverted: false
+      number: ${pinDIR}
+      #Legacy uncomment "allow_other_uses: true" if using old pcb
+      #allow_other_uses: true
+      inverted: ${pinDIRReversed}
     step_pin:
-      number: ${pinb}
-      inverted: false
+      number: ${pinSTP}
+      inverted: false # Default false
     sleep_pin:
-      number: ${pinc}
-      inverted: false
+      number: ${pinSLP}
+      inverted: false # Default false
     max_speed: '${speed}' # Speed of the motor
     acceleration: inf
     deceleration: inf
 
 ## Globals
 globals:
-  - id: ${mystepper}_global # Integer for storing the stepper position in case of reboot
+  - id: ${myStepper}_global # Integer for storing the stepper position in case of reboot
     type: int
-    restore_value: true
+    restore_value: true # Default true
     initial_value: '0'
 
   - id: openclosed # Boolean to store OPEN/CLOSED state
     type: bool
-    restore_value: true
+    restore_value: true # Default true
     initial_value: '0'
 
   - id: endstop # Variable for storing ENDSTOP (how far to move stepper)
     type: int
-    restore_value: true
-    initial_value: '1000'
+    restore_value: true # Default true
+    initial_value: '1024' # Initial endstop value, without configuration this should be half a revolution
 
-  - id: settingmode # Integer for Setup Mode
+  - id: settingsmode # Integer for Setup Mode
     type: int
     restore_value: no
     initial_value: '0'
@@ -546,29 +821,55 @@ globals:
     type: int
     restore_value: no
 #    initial_value: '0'
-#0=STOPPED WHILE OPENING
-#1=CLOSING / MOVING DOWN
-#2=STOPPED WHILE CLOSING
-#3=OPENING / MOVING UP
+
+  - id: tweakmode # Integer for Tweak Mode
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: tweakstepsvalue # Variable for storing how many steps to adjust endstop with in Tweak Mode
+    type: int
+    restore_value: no
+    initial_value: '${tweakInitial}' # Number of Steps to add to "enstop"//subtract from "endstop" / 2048=One Revolution, 1024=Half a Revolution, 512=Quarter Revolution and so on...
+
+## 0=STOPPED WHILE OPENING
+## 1=CLOSING / MOVING DOWN
+## 2=STOPPED WHILE CLOSING
+## 3=OPENING / MOVING UP
 
 number:
   - platform: template
     name: 'Speed'
     id: rollerspeed
     icon: 'mdi:speedometer'
-    max_value: 1000
-    min_value: 100
-    step: 50
+    max_value: '${maxSpeed}'
+    min_value: '${minSpeed}'
+    step: '${speedSteps}'
     mode: slider
-    initial_value: ${speed}
-    optimistic: true
+    initial_value: '${speed}'
+    optimistic: true # Default true
     on_value:
       - stepper.set_speed:
-          id: ${mystepper}
+          id: '${myStepper}'
           speed: !lambda "return x;"
       - text_sensor.template.publish:
           id: current_status
           state: 'Set new steps/s for stepper motor'
+
+  - platform: template
+    name: 'Tweak Step Amount'
+    id: tweaksteps
+    icon: 'mdi:counter'
+    max_value: '${tweakMax}' # 2048 steps is one full revolution of the stepper
+    min_value: '${tweakMin}'
+    step: '${tweakInterval}'
+    mode: slider
+    initial_value: '${tweakInitial}'
+    optimistic: true # Default true
+    on_value:
+      - globals.set:
+            id: tweakstepsvalue
+            value: !lambda "return x;"
 
 ## Switch
 switch:
@@ -577,7 +878,7 @@ switch:
     id: setupswitch
     icon: 'mdi:cog-outline'
     lambda: |-
-      if (id(settingmode) != 0) {
+      if (id(settingsmode) != 0) {
         return true;
       } else {
         return false;
@@ -586,7 +887,7 @@ switch:
       then:
         - logger.log: 'Entered Settings Mode'
         - globals.set:
-            id: settingmode
+            id: settingsmode
             value: '1'
         - text_sensor.template.publish:
             id: setup_position
@@ -598,21 +899,82 @@ switch:
             id: blue_led
     turn_off_action:
       then:
-        - logger.log: 'Exiting Settings Mode'
+        - logger.log: 'Exited Settings Mode'
         - globals.set:
-            id: settingmode
+            id: settingsmode
             value: '0'
+        - if: # if setup was started then canceled set everything to 0
+            condition:
+              - lambda: 'return ( id(setup_position).state == "S1" || id(setup_position).state == "S2" );'
+            then:
+              - stepper.report_position: # Set Stepper position to 0
+                  id: ${myStepper}
+                  position: '0'
+              - stepper.set_target: # Set Stepper target to 0
+                  id: ${myStepper}
+                  target: '0'
+              - globals.set: # Set global Endstop Variable to 0
+                  id: endstop
+                  value: '0'
+              - text_sensor.template.publish:
+                  id: endstop_position
+                  state: '0'
         - text_sensor.template.publish:
-                id: setup_position
-                state: ''
+            id: setup_position
+            state: ''
         - text_sensor.template.publish:
             id: current_status
             state: 'Setup cancelled'
         - switch.turn_off:
             id: blue_led
-  
+
   - platform: template
-    name: 'Continuous Feedback' # Switch to activate continuous feedback
+    name: 'Activate Tweak Mode' # Switch to enter Tweak Mode
+    id: tweakswitch
+    icon: 'mdi:tune-vertical-variant'
+    lambda: |-
+      if (id(tweakmode) != 0) {
+        return true;
+      } else {
+        return false;
+      }
+    turn_on_action:
+      then:
+        - logger.log: 'Entered Tweak Mode'
+        - text_sensor.template.publish:
+            id: setup_position
+            state: 'F1'
+        - text_sensor.template.publish:
+            id: tweak_buttons_visible
+            state: '0'
+        - globals.set:
+            id: tweakmode
+            value: '1'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Tweak Mode has been activated, click [Action Button] to move to and then adjust the open postion.'
+        - switch.turn_on:
+            id: blue_led
+    turn_off_action:
+      then:
+        - logger.log: 'Exited Tweak Mode'
+        - text_sensor.template.publish:
+            id: setup_position
+            state: ''
+        - text_sensor.template.publish:
+            id: tweak_buttons_visible
+            state: '0'
+        - globals.set:
+            id: tweakmode
+            value: '0'
+        - text_sensor.template.publish:
+            id: current_status
+            state: 'Tweak Mode cancelled'
+        - switch.turn_off:
+            id: blue_led
+
+  - platform: template
+    name: 'Continuous Feedback' # Switch to activate Continuous Feedback
     id: feedbackswitch
     icon: 'mdi:sync'
     lambda: |-
@@ -621,7 +983,7 @@ switch:
       } else {
         return false;
       }
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: RESTORE_DEFAULT_ON
     turn_on_action:
       - logger.log: 'Activated Continuous Feedback'
       - globals.set:
@@ -641,92 +1003,59 @@ switch:
 
   - platform: gpio
     name: 'Blue LED'
-    internal: true
+    internal: true # Default true
     id: blue_led
     icon: 'mdi:alarm-light'
     pin:
       number: ${pinLED}
+      #Legacy uncomment "allow_other_uses: true" if using old pcb
+      #allow_other_uses: true
       mode: OUTPUT
-    inverted: true
+    inverted: true # Default true
     restore_mode: ALWAYS_OFF
-
-#output:
-#  - platform: ledc
-#    pin: ${pinLED}
-#    frequency: 500 Hz
-#    id: blue_led_output
-#    inverted: true
-
-#light:
-#  - platform: monochromatic
-#    internal: true
-#    output: blue_led_output
-#    name: 'Blue LED'
-#    id: blue_led
-#    restore_mode: RESTORE_DEFAULT_OFF
-#    default_transition_length: 10s
-#    effects:
-#      - pulse:
-#          name: 'Fast'
-#          transition_length: 0.2s
-#          update_interval: 0.2s
-#          min_brightness: 0%
-#          max_brightness: 100%
-#      - pulse:
-#          name: 'Offy'
-#          transition_length: 0s
-#          update_interval: 0s
-#          min_brightness: 0%
-#          max_brightness: 0%
-#    on_turn_on:
-#      - light.turn_on: 
-#          id: blue_led
-#    on_turn_off:
-#      - light.turn_off: 
-#          id: blue_led
 
 ## Cover
 cover:
   - platform: template
     name: 'Roller'
-    id: blinded
+    id: rollerblind
     open_action:
       then:
         - logger.log: 'Opening'
         - stepper.set_target: # Send stepper to endstop
-            id: ${mystepper}
-            target: !lambda return id(endstop);
+            id: ${myStepper}
+            target: !lambda 'return id(endstop);'
         - text_sensor.template.publish:
             id: current_status
             state: 'Opening'
         - if: # If continuous feedback switch is on
             condition:
               - lambda: 'return id(feedback) != 0;'
-            then: # with continuous feedback
+            then: # With continuous feedback
               - while:
                   condition:
-                    lambda: 'return id(${mystepper}).current_position != id(endstop);'
+                    lambda: 'return id(${myStepper}).current_position != id(endstop);'
                   then:
                     - cover.template.publish:
-                        id: blinded
-                        position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
+                        id: rollerblind
+                        position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
                         current_operation: OPENING
-                    - delay: ${delaybetweenupdates}
-            else: # without contiunous feedback
+                    - delay: ${delayBetweenUpdates}
+            else: # Without contiunous feedback
               - cover.template.publish:
-                  id: blinded
-                  position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
+                  id: rollerblind
+                  position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
                   current_operation: OPENING
               - wait_until: # Wait until endstop reached
-                  lambda: 'return (id(${mystepper}).current_position == id(endstop));'
+                  lambda: 'return id(${myStepper}).current_position == id(endstop);'
         - globals.set: # Set global to current position
-            id: ${mystepper}_global
-            value: !lambda return id($mystepper).current_position;
+            id: ${myStepper}_global
+            value: !lambda return id($myStepper).current_position;
         - globals.set: # Set toggle to OPEN (No need for 'optimistic mode')
             id: openclosed
             value: '1'
         - cover.template.publish:
-            id: blinded
+            id: rollerblind
             state: OPEN
             current_operation: IDLE
         - globals.set:
@@ -739,7 +1068,7 @@ cover:
       then:
         - logger.log: 'Closing'
         - stepper.set_target: # Send stepper to 0
-            id: ${mystepper}
+            id: ${myStepper}
             target: '0'
         - text_sensor.template.publish:
             id: current_status
@@ -747,31 +1076,31 @@ cover:
         - if: # If continuous feedback switch is on
             condition:
               - lambda: 'return id(feedback) != 0;'
-            then: # with continuous feedback
+            then: # With continuous feedback
               - while:
                   condition:
-                    lambda: 'return id(${mystepper}).current_position != 0;'
+                    lambda: 'return id(${myStepper}).current_position != 0;'
                   then:
                     - cover.template.publish:
-                        id: blinded
-                        position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
+                        id: rollerblind
+                        position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
                         current_operation: CLOSING
-                    - delay: ${delaybetweenupdates}
-            else: # without continuous feedback
+                    - delay: ${delayBetweenUpdates}
+            else: # Without continuous feedback
               - cover.template.publish:
-                  id: blinded
-                  position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
+                  id: rollerblind
+                  position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
                   current_operation: CLOSING
               - wait_until: # Wait until endstop reached
-                  lambda: 'return id(${mystepper}).current_position == 0;'
+                  lambda: 'return id(${myStepper}).current_position == 0;'
         - globals.set: # Set global to current position
-            id: ${mystepper}_global
-            value: !lambda return id($mystepper).current_position;
+            id: ${myStepper}_global
+            value: !lambda return id($myStepper).current_position;
         - globals.set: # Set toggle to CLOSED (No need for 'optimistic mode')
             id: openclosed
             value: '0'
         - cover.template.publish:
-            id: blinded
+            id: rollerblind
             state: CLOSED
             current_operation: IDLE
         - globals.set:
@@ -783,7 +1112,7 @@ cover:
     position_action:
       then:
         - stepper.set_target:
-            id: ${mystepper}
+            id: ${myStepper}
             target: !lambda return int(id(endstop) * pos);
         - text_sensor.template.publish:
             id: current_status
@@ -794,24 +1123,24 @@ cover:
         - if: # If continuous feedback switch is on
             condition:
               - lambda: 'return id(feedback) != 0;'
-            then: # with continuous feedback
+            then: # With continuous feedback
               - while:
                   condition:
-                    lambda: 'return id(${mystepper}).current_position != int(id(endstop) * pos);'
+                    lambda: 'return id(${myStepper}).current_position != int(id(endstop) * pos);'
                   then:
                     - cover.template.publish:
-                        id: blinded
-                        position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
-                    - delay: ${delaybetweenupdates}
-            else: # without continuous feedback
+                        id: rollerblind
+                        position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
+                    - delay: ${delayBetweenUpdates}
+            else: # Without continuous feedback
               - wait_until: # Wait until endstop reached
-                  lambda: 'return id(${mystepper}).current_position == (int(id(endstop) * pos));'
+                  lambda: 'return id(${myStepper}).current_position == (int(id(endstop) * pos));'
         - globals.set: # Set global to current position
-            id: ${mystepper}_global
-            value: !lambda return id(${mystepper}).current_position;
+            id: ${myStepper}_global
+            value: !lambda return id(${myStepper}).current_position;
         - cover.template.publish:
-            id: blinded
-            position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
+            id: rollerblind
+            position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
             current_operation: IDLE
         - text_sensor.template.publish:
             id: current_status
@@ -822,75 +1151,78 @@ cover:
     stop_action:
       then:
         - stepper.set_target:
-            id: ${mystepper}
-            target: !lambda return id(${mystepper}).current_position;
+            id: ${myStepper}
+            target: !lambda return id(${myStepper}).current_position;
         - globals.set: # Set global to current position
-            id: ${mystepper}_global
-            value: !lambda return id(${mystepper}).current_position;
+            id: ${myStepper}_global
+            value: !lambda return id(${myStepper}).current_position;
         - cover.template.publish:
-            id: blinded
-            position: !lambda 'return (float(float(id(${mystepper}).current_position) / float(id(endstop))));'
+            id: rollerblind
+            position: !lambda 'return (float(float(id(${myStepper}).current_position) / float(id(endstop))));'
             current_operation: IDLE
         - text_sensor.template.publish:
             id: current_status
             state: 'Stopped'
-    has_position: true
-    device_class: blind
+    has_position: true # Default true
+    device_class: shade
 
 ## Scripts
 script:
-  - id: setupbutton
+  - id: setupscript
     then:
       - if:
           condition:
-            - lambda: 'return (id(settingmode) == 3);'
+            - lambda: 'return id(settingsmode) == 3;'
           then:
             - logger.log: 'Pressed Action Button: Mode 3'
             - stepper.set_target: # Set Stepper position
-                id: ${mystepper}
-                target: !lambda return id(${mystepper}).current_position;
+                id: ${myStepper}
+                target: !lambda 'return id(${myStepper}).current_position;'
             - globals.set: # Set Endstop Variable
                 id: endstop
-                value: !lambda return id(${mystepper}).current_position;
+                value: !lambda 'return id(${myStepper}).current_position;'
             - globals.set: # Set Global stepper position
-                id: ${mystepper}_global
-                value: !lambda return id(${mystepper}).current_position;
+                id: ${myStepper}_global
+                value: !lambda 'return id(${myStepper}).current_position;'
             - globals.set: # Reset Setting Mode
-                id: settingmode
+                id: settingsmode
                 value: '0'
             - globals.set: # Set toggle to Open
                 id: openclosed
                 value: '1'
             - cover.template.publish:
-                id: blinded
+                id: rollerblind
                 state: OPEN
                 current_operation: IDLE
-            - logger.log: 'Exiting Setting Mode'
+            - logger.log: 'Exited Setting Mode'
             - text_sensor.template.publish:
                 id: setup_position
                 state: 'S3'
             - text_sensor.template.publish:
                 id: current_status
                 state: 'Setup complete, settings stored.'
+            - switch.turn_off:
+                id: blue_led
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return esphome::to_string(id(endstop)).c_str();
       - if:
           condition:
-            - lambda: 'return (id(settingmode) == 2);'
+            - lambda: 'return id(settingsmode) == 2;'
           then:
             - logger.log: 'Pressed Action Button: Mode 2'
             - stepper.report_position: # Reset Stepper position to 0
-                id: ${mystepper}
+                id: ${myStepper}
                 position: '0'
             - stepper.set_target: # Reset Stepper position to 0
-                id: ${mystepper}
+                id: ${myStepper}
                 target: '0'
-            - globals.set: # Move stepper to 0 (doesn't move it's already there!)
-                id: ${mystepper}_global
-                value: '0'
-            - stepper.set_target: # Reset Stepper position to 72000
-                id: ${mystepper}
-                target: '720000'
-            - globals.set: # Advance setup to next mode
-                id: settingmode
+            - stepper.set_target: # Reset Stepper position to 1000000
+                id: ${myStepper}
+                target: '1000000'
+            - globals.set: # Advance to next step in Setup Mode
+                id: settingsmode
                 value: '3'
             - text_sensor.template.publish:
                 id: setup_position
@@ -900,14 +1232,14 @@ script:
                 state: 'Step 2: Click [Action Button] when the wanted open position has been reached.'
       - if:
           condition:
-            - lambda: 'return (id(settingmode) == 1);'
+            - lambda: 'return id(settingsmode) == 1;'
           then:
             - logger.log: 'Pressed Action Button: Mode 1'
-            - stepper.report_position: # Set Stepper position to 72000, makes it move to 0 (Closed)
-                id: ${mystepper}
-                position: '720000'
-            - globals.set: # Advance setup to next mode
-                id: settingmode
+            - stepper.report_position: # Set Stepper position to 1000000, makes it move to 0 (Closed)
+                id: ${myStepper}
+                position: '1000000'
+            - globals.set: # Advance to next step in Setup Mode
+                id: settingsmode
                 value: '2'
             - text_sensor.template.publish:
                 id: setup_position
@@ -915,3 +1247,94 @@ script:
             - text_sensor.template.publish:
                 id: current_status
                 state: 'Step 1: Click [Action Button] when the wanted closed position has been reached.'
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return esphome::to_string(id(endstop)).c_str();
+
+  - id: tweakscript
+    then:
+      - if:
+          condition:
+            - lambda: |-
+                if ( id(tweakmode) == 3 ) {
+                  return true;
+                } else {
+                  return false;
+                }
+          then:
+            - text_sensor.template.publish:
+                id: setup_position
+                state: ''
+            - text_sensor.template.publish:
+                id: tweak_buttons_visible
+                state: '0'
+            - globals.set: # Reset Tweak Mode
+                id: tweakmode
+                value: '0'
+            - logger.log: 'Exited Tweak Mode'
+            - cover.template.publish:
+                id: rollerblind
+                state: CLOSED
+                current_operation: IDLE
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Tweak: Closed Position stored, Tweaking finished.'
+            - switch.turn_off:
+                id: blue_led
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return esphome::to_string(id(endstop)).c_str();
+      - if:
+          condition:
+            - lambda: |-
+                if ( id(tweakmode) == 2 && id(${myStepper}).current_position == id(endstop) ) {
+                  return true;
+                } else {
+                  return false;
+                }
+          then:
+            - text_sensor.template.publish:
+                id: setup_position
+                state: 'F3'
+            - text_sensor.template.publish:
+                id: tweak_buttons_visible
+                state: '1'
+            - stepper.set_target: # Move to Closed Position
+                id: ${myStepper}
+                target: !lambda 'return 0;'
+            - globals.set: # Advance to next step in Tweak Mode
+                id: tweakmode
+                value: '3'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Tweak: Open Position stored, Moving to Closed Position'
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return esphome::to_string(id(endstop)).c_str();          
+      - if:
+          condition:
+            - lambda: 'return id(tweakmode) == 1;'
+          then:
+            - text_sensor.template.publish:
+                id: setup_position
+                state: 'F2'
+            - text_sensor.template.publish:
+                id: tweak_buttons_visible
+                state: '1'
+            - stepper.set_target: # Move to Open Position
+                id: ${myStepper}
+                target: !lambda 'return id(endstop);'
+            - logger.log: 'Tweak: Moving Roller Blind to Open Position'
+            - globals.set: # Advance to next step in Tweak Mode
+                id: tweakmode
+                value: '2'
+            - text_sensor.template.publish:
+                id: current_status
+                state: 'Tweak: When at Open Position, adjust using [Tweak Down] or [Tweak Up], advance with [Action Button]'
+            - text_sensor.template.publish:
+                id: endstop_position
+                state: !lambda |-
+                  return esphome::to_string(id(endstop)).c_str();
