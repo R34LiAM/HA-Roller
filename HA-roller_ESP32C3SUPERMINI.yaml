@@ -173,6 +173,13 @@ substitutions:
   pinDIRReversed: 'false' # Default false | Change to true if roller blind goes up instead of down and vice versa (reverse direction) this can not be changed at runtime
   pinLED: GPIO8 # Used for the ESP32 C3 Super Mini on board Blue LED to indicate when in "setup-mode"/LED on
 
+  #ESP32    WEMOS
+  #0=GPIO0->TX=GPIO1 | pinButton
+  #1=GPIO1->D1=GPIO5 | pinSLP # SLEEP & RESET > A4988
+  #2=GPIO2->D2=GPIO4 | pinSTP # STEP > A4988
+  #3=GPIO3->D3=GPIO0 | pinDIR # DIRECTION > A4988
+  #4=GPIO4->D6=GPI12 | pinReedSwitch
+
   ## Wemos d1 mini
   #pinPIR: D7 # PIR (Passive IR sensor) pin
   #pinIRSend: D5 # Playback IR signals from MQTT topic
@@ -334,6 +341,28 @@ wifi:
 ## Web server, takes alot of resources so uncomment only if needed
 web_server:
   port: 80
+  #version: 2
+  version: 3
+  local: true
+  sorting_groups:
+    - id: sorting_control
+      name: "Control"
+      sorting_weight: 1
+    - id: sorting_config
+      name: "Configuration"
+      sorting_weight: 2
+    - id: sorting_sensors
+      name: "Sensors"
+      sorting_weight: 3
+    - id: sorting_info
+      name: "Information"
+      sorting_weight: 4
+    - id: sorting_power
+      name: "Power"
+      sorting_weight: 5
+    - id: sorting_internal
+      name: "Internal"
+      sorting_weight: 6
 
 ## Enable logging
 logger:
@@ -365,50 +394,84 @@ time:
 text_sensor:
   ## Expose ESPHome version as sensor.
   - platform: version
+    web_server:
+      sorting_group_id: sorting_info
+      sorting_weight: 2
     name: 'ESPHome Version'
   ## Expose WiFi information as sensors.
   - platform: wifi_info
     ip_address:
+      web_server:
+        sorting_group_id: sorting_info
+        sorting_weight: 3
       name: 'IP'
       icon: 'mdi:ip-network-outline'
     ssid:
+      web_server:
+        sorting_group_id: sorting_info
+        sorting_weight: 5
       name: 'SSID'
       icon: 'mdi:access-point'
     bssid:
+      web_server:
+        sorting_group_id: sorting_info
+        sorting_weight: 6
       name: 'BSSID'
       icon: 'mdi:access-point'
     mac_address:
+      web_server:
+        sorting_group_id: sorting_info
+        sorting_weight: 7
       name: 'MAC'
       icon: 'mdi:expansion-card-variant'
   - platform: template
+    web_server:
+      sorting_group_id: sorting_info
+      sorting_weight: 1
     name: 'Friendly Name'
     icon: 'mdi:heart-outline'
     lambda: |-
       return {"${subFriendlyName}"};
   - platform: template
+    web_server:
+      sorting_group_id: sorting_control
+      sorting_weight: 2
     name: 'Last Action'
     update_interval: never
     id: current_status
     icon: 'mdi:chart-box-outline'
   - platform: template
+    web_server:
+      sorting_group_id: sorting_internal
     name: 'Setup Position'
     id: setup_position
     icon: 'mdi:null'
   - platform: template
+    web_server:
+      sorting_group_id: sorting_internal
     name: 'Tweak Buttons Visible'
     id: tweak_buttons_visible
     icon: 'mdi:null'
   - platform: template
+    web_server:
+      sorting_group_id: sorting_info
+      sorting_weight: 8
     name: 'Uptime HR'
     id: uptime_human
     icon: 'mdi:timer-outline'
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 10
     name: 'Reversed Direction'
     id: stepper_operation
     icon: 'mdi:swap-vertical-circle-outline'
     lambda: |-
       return {"${pinDIRReversed}"};
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 6
     name: 'Endstop position'
     id: endstop_position
     icon: 'mdi:vector-circle-variant'
@@ -419,12 +482,21 @@ text_sensor:
 button:
   ## Button to restart the device
   - platform: restart
+    web_server:
+      sorting_group_id: sorting_power
+      sorting_weight: 1
     name: 'Restart'
     icon: 'mdi:restart'
   - platform: safe_mode
+    web_server:
+      sorting_group_id: sorting_power
+      sorting_weight: 2
     name: 'Restart (Safe Mode)'
     icon: 'mdi:restart-alert'
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 2
     name: 'Action Button' # Button to replicate the Physical Button once Settings Mode has been entered
     icon: 'mdi:gesture-tap-button'
     on_press:
@@ -441,6 +513,9 @@ button:
             - script.execute: tweakscript
 
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 4
     name: 'Tweak Up'
     icon: 'mdi:arrow-up-bold-hexagon-outline'
     on_press:
@@ -547,6 +622,9 @@ button:
                   return esphome::to_string(id(endstop)).c_str();  
 
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 5
     name: 'Tweak Down'
     icon: 'mdi:arrow-down-bold-hexagon-outline'
     on_press:
@@ -641,6 +719,9 @@ button:
 sensor:
   ## Uptime sensor.
   - platform: uptime
+    web_server:
+      sorting_group_id: sorting_info
+      sorting_weight: 9
     name: 'Uptime'
     id: 'upptime'
     icon: 'mdi:timer-outline'
@@ -664,6 +745,9 @@ sensor:
               ).c_str();
   ## WiFi Signal sensor.
   - platform: wifi_signal
+    web_server:
+      sorting_group_id: sorting_info
+      sorting_weight: 4
     name: 'WiFi Signal'
     update_interval: 120s
     icon: 'mdi:wifi-strength-3'
@@ -763,10 +847,13 @@ binary_sensor:
               state: 'Setup activated, click to start'
 
   - platform: gpio
+    web_server:
+      sorting_group_id: sorting_sensors
     pin:
       number: $pinReedSwitch
       mode: INPUT_PULLUP
     name: 'Window'
+    icon: 'mdi:window-open-variant'
     filters:
       - delayed_on: 250ms
     device_class: window
@@ -839,6 +926,9 @@ globals:
 
 number:
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 8
     name: 'Speed'
     id: rollerspeed
     icon: 'mdi:speedometer'
@@ -857,6 +947,9 @@ number:
           state: 'Set new steps/s for stepper motor'
 
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 7
     name: 'Tweak Step Amount'
     id: tweaksteps
     icon: 'mdi:counter'
@@ -874,6 +967,9 @@ number:
 ## Switch
 switch:
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 1
     name: 'Activate Setup' # Switch to enter Setup Mode
     id: setupswitch
     icon: 'mdi:cog-outline'
@@ -929,6 +1025,9 @@ switch:
             id: blue_led
 
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 3
     name: 'Activate Tweak Mode' # Switch to enter Tweak Mode
     id: tweakswitch
     icon: 'mdi:tune-vertical-variant'
@@ -974,6 +1073,9 @@ switch:
             id: blue_led
 
   - platform: template
+    web_server:
+      sorting_group_id: sorting_config
+      sorting_weight: 9
     name: 'Continuous Feedback' # Switch to activate Continuous Feedback
     id: feedbackswitch
     icon: 'mdi:sync'
@@ -1017,8 +1119,12 @@ switch:
 ## Cover
 cover:
   - platform: template
+    web_server:
+      sorting_group_id: sorting_control
+      sorting_weight: 1
     name: 'Roller'
     id: rollerblind
+    icon: 'mdi:roller-shade'
     open_action:
       then:
         - logger.log: 'Opening'
