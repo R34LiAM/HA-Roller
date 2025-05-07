@@ -341,37 +341,37 @@ cards:
 
 
                     {% if is_state('sensor.rullgardin00_setup_position', 'F2')
-                    %} 1. <font color='#9cf'>**Adjust Closed Position**
-
-                    Wait for the Roller Blind to reach it's Closed Position
-                    then:
-
-                    Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
-                    adjust the Closed Position. Click ***[Next]*** when
-                    done.</font> {% else %} 1. <font color='#999'>**Adjust
-                    Closed Position**
-
-                    Wait for the Roller Blind to reach the Closed Position then:
-
-                    Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
-                    adjust the Closed Position. Click ***[Next]*** when
-                    done.</font> {% endif %}
-
-
-                    {% if is_state('sensor.rullgardin00_setup_position', 'F3')
-                    %} 2. <font color='#9cf'>**Adjust Open Position**
+                    %} 1. <font color='#9cf'>**Adjust Open Position**
 
                     Wait for the Roller Blind to reach it's Open Position then:
 
                     Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
                     adjust the Open Position. Click ***[Next]*** when
-                    done.</font> {% else %} 2. <font color='#999'>**Adjust Open
+                    done.</font> {% else %} 1. <font color='#999'>**Adjust Open
                     Position**
 
                     Wait for the Roller Blind to reach the Open Position then:
 
                     Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
                     adjust the Open Position. Click ***[Next]*** when
+                    done.</font> {% endif %}
+
+
+                    {% if is_state('sensor.rullgardin00_setup_position', 'F3')
+                    %} 2. <font color='#9cf'>**Adjust Closed Position**
+
+                    Wait for the Roller Blind to reach it's Closed Position
+                    then:
+
+                    Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
+                    adjust the Closed Position. Click ***[Next]*** when
+                    done.</font> {% else %} 2. <font color='#999'>**Adjust
+                    Closed Position**
+
+                    Wait for the Roller Blind to reach the Closed Position then:
+
+                    Use ***[Tweak Up]*** and ***[Tweak Down]*** buttons below to
+                    adjust the Closed Position. Click ***[Next]*** when
                     done.</font> {% endif %}
 
                     #### <font color='#999'><ha-icon
