@@ -2,6 +2,8 @@
 
 Motorized blinds extremely cheap (IKEA Fridans)
 
+Added the new version/case at: https://www.printables.com/model/1248038-automated-roller-blinds
+
 all information is at: https://www.thingiverse.com/thing:4889111
 
 ![Optional PCB](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/PCB.png?raw=true)
