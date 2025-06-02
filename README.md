@@ -4,12 +4,11 @@ Motorized blinds extremely cheap (IKEA Fridans)
 
 Added the new version/case at: https://www.printables.com/model/1248038-automated-roller-blinds
 
-below is "old" version
-all information is at: https://www.thingiverse.com/thing:4889111
-
 ![Optional PCB](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/PCB.png?raw=true)
 ![Home Assistant](https://github.com/R34LiAM/HA-Roller/blob/main/pcb/HA.png?raw=true)
 
+
+"old" version is still at: https://www.thingiverse.com/thing:4889111
 
 Integrates with:
 
